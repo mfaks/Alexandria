@@ -5,6 +5,7 @@ go 1.22.2
 require github.com/go-sql-driver/mysql v1.8.1
 
 require (
+	github.com/go-chi/chi v1.5.5 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
