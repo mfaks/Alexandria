@@ -1,8 +1,47 @@
-<main class="main">
-  <div class="content-center">
-    <h1>Alexandria</h1>
-    <h3>An AI Powered Research Library</h3>
-  </div>
-</main>
-
-<router-outlet></router-outlet>
+<div>
+  <app-navbar></app-navbar>
+  <main>
+    <section>
+      <div>
+        <div>
+          <h1>
+            Alexandria
+          </h1>
+          <h2>
+            An AI Powered Research Assistant 
+          </h2>
+          <p>
+            Alexandria is your AI-powered research companion. Simply upload your paper to our intelligent library and engage in insightful conversations about your work. Explore a vast collection of public research, effortlessly searching and interacting with studies from diverse fields. Alexandria transforms how you access, understand, and build upon academic knowledge.
+          </p>
+          <div class="flex gap-4">
+            <a href="#" class="btn btn-primary">
+              Create Account
+            </a>
+            <a href="#" class="btn btn-secondary">
+              Sign In
+            </a>
+          </div>
+        </div>
+        <img src="https://placebear.com/200/300" width="550" height="550" alt="Hero" />
+      </div>
+    </section>
+    <section>
+      <div>
+        <div>
+          <div>
+            <ul>
+              <li *ngFor="let feature of features">
+                <div>
+                  <h3>{{ feature.title }}</h3>
+                  <p>{{ feature.description }}</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <img src="https://placebear.com/200/300" width="550" height="310" alt="Features" />
+        </div>
+      </div>
+    </section>
+  </main>
+  <app-footer></app-footer>
+</div>

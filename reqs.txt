@@ -1,0 +1,14 @@
+Frontend:
+- Home Page (Login, Signup)
+- Carosel of imamges
+- Navbar (Search PDFs is inactive until login + Profile Information)
+- Footer (CopyRight, Back to Top FAQs Github Code,)
+- My pdfs; Click on it and the left half of the screen becomes the pdf and the rigth half becomes a chatbox
+- View Public pdfs; click on it to start a chat with it
+- sidebar: previous pdf chats
+- Navbar: search pdfs
+
+Backend:
+- MongoDB to store pdfs
+- MySQL to store user information, chat conversations
+- FastAPI to get/send messages from users
