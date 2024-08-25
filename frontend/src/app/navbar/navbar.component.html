@@ -1,0 +1,29 @@
+<div class="navbar bg-base-100 flex items-center justify-between w-full px-4">
+    <div class="flex-none flex items-center">
+        <img src="library.svg" alt="Library Icon" class="w-6 h-6">
+        <span class="ml-3 text-xl hidden sm:inline">Alexandria</span>
+    </div>
+    <div class="flex-grow mx-4">
+        <app-nav-search class="w-full"></app-nav-search>
+    </div>
+    <div class="flex-none flex items-center gap-2 sm:gap-4">
+        <nav class="hidden sm:flex space-x-2 md:space-x-4">
+            <a href="#" class="text-xs sm:text-sm whitespace-nowrap">Features</a>
+            <a href="#" class="text-xs sm:text-sm whitespace-nowrap">About</a>
+            <a href="#" class="text-xs sm:text-sm whitespace-nowrap">Contact</a>
+        </nav>
+        <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+                <div class="w-8 sm:w-10 rounded-full">
+                    <img alt="Profile Image"
+                        src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+                </div>
+            </div>
+            <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+                <li><a class="justify-between">Profile <span class="badge">New</span></a></li>
+                <li><a>Settings</a></li>
+                <li><a>Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</div>

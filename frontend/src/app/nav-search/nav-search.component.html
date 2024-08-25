@@ -1,0 +1,15 @@
+<div class="form-control w-full max-w-3xl relative">
+    <input type="text" [(ngModel)]="searchText" placeholder="Search the Alexandria Library"
+        class="input input-bordered w-full pr-10 text-sm" />
+    @if (searchText) {
+    <button (click)="clearSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+        aria-label="Clear search">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="lucide lucide-x">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+        </svg>
+    </button>
+    }
+</div>
