@@ -9,6 +9,7 @@ Frontend:
 - Navbar: search pdfs
 
 Backend:
-- MongoDB to store pdfs
-- MySQL to store user information, chat conversations
-- FastAPI to get/send messages from users
+- Database:
+    - MongoDB to store pdfs
+    - MySQL to store user information, chat conversations
+    
