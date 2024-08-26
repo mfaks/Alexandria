@@ -5,6 +5,7 @@ go 1.22.2
 require github.com/go-sql-driver/mysql v1.8.1
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/go-chi/chi v1.5.5 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
@@ -20,6 +21,8 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/go-chi/cors v1.2.1
 	github.com/joho/godotenv v1.5.1 // indirect
 	go.mongodb.org/mongo-driver v1.16.1
+	golang.org/x/oauth2 v0.22.0
 )

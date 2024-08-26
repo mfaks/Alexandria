@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { NavbarComponent } from './navbar/navbar.component';
 import { FooterComponent } from './footer/footer.component';
 import { NavSearchComponent } from './nav-search/nav-search.component';
+import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-root',
@@ -28,4 +29,16 @@ export class AppComponent {
     }
   ];
 
+  constructor(private authService: AuthService) { }
+
+  signIn(provider: string) {
+    this.authService.getAuthUrl(provider).subscribe(
+      response => {
+        window.location.href = response.url;
+      },
+      error => {
+        console.error('Error getting auth URL', error);
+      }
+    );
+  }
 }

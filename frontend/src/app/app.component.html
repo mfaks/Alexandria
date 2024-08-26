@@ -14,12 +14,8 @@
             Alexandria is your AI-powered research companion. Simply upload your paper to our intelligent library and engage in insightful conversations about your work. Explore a vast collection of public research, effortlessly searching and interacting with studies from diverse fields. Alexandria transforms how you access, understand, and build upon academic knowledge.
           </p>
           <div class="flex gap-4">
-            <a href="#" class="btn btn-primary">
-              Create Account
-            </a>
-            <a href="#" class="btn btn-secondary">
-              Sign In
-            </a>
+            <button (click)="signIn('github')" class="btn btn-primary">Sign In with GitHub</button>
+            <button (click)="signIn('google')" class="btn btn-primary">Sign In with Google</button>
           </div>
         </div>
         <img src="https://placebear.com/200/300" width="550" height="550" alt="Hero" />
