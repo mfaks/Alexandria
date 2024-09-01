@@ -1,7 +1,7 @@
 <div class="navbar bg-base-100 flex items-center justify-between w-full px-4">
     <div class="flex-none flex items-center">
         <img src="library.svg" alt="Library Icon" class="w-6 h-6">
-        <span class="ml-3 text-xl hidden sm:inline">Alexandria</span>
+        <a routerLink="/" class="ml-3 text-xl hidden sm:inline">Alexandria</a>
     </div>
     <div class="flex-grow flex justify-center mx-4">
         <div class="w-full max-w-3xl">
@@ -10,21 +10,43 @@
     </div>
     <div class="flex-none flex items-center gap-2 sm:gap-4">
         <nav class="hidden sm:flex space-x-2 md:space-x-4">
-            <a href="#" class="text-xs sm:text-sm whitespace-nowrap">Features</a>
-            <a href="#" class="text-xs sm:text-sm whitespace-nowrap">About</a>
-            <a href="#" class="text-xs sm:text-sm whitespace-nowrap">Contact</a>
+            <a routerLink="/features" class="text-xs sm:text-sm whitespace-nowrap">Features</a>
+            <a routerLink="/about" class="text-xs sm:text-sm whitespace-nowrap">About</a>
+            <a routerLink="/contact" class="text-xs sm:text-sm whitespace-nowrap">Contact</a>
         </nav>
         <div class="dropdown dropdown-end">
-            <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
-                <div class="w-8 sm:w-10 rounded-full">
-                    <img alt="Profile Image"
-                        src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" />
+            <div class="btn btn-ghost btn-circle avatar flex items-center justify-center">
+                <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full overflow-hidden flex items-center justify-center"
+                    *ngIf="userInfo; else defaultAvatar">
+                    <img [src]="userInfo.avatar" [alt]="userInfo.name + ' profile picture'"
+                        *ngIf="userInfo.avatar; else initialAvatar" class="w-full h-full object-cover" />
+                    <ng-template #initialAvatar>
+                        <div
+                            class="bg-primary text-primary-content w-full h-full flex items-center justify-center text-lg font-semibold">
+                            {{ userInfo.name[0].toUpperCase() }}
+                        </div>
+                    </ng-template>
                 </div>
+                <ng-template #defaultAvatar>
+                    <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-gray-300 flex items-center justify-center p-1.5 sm:p-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            class="w-full h-full text-gray-600">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                </ng-template>
             </div>
             <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
-                <li><a class="justify-between">Profile <span class="badge">New</span></a></li>
-                <li><a>Settings</a></li>
-                <li><a>Logout</a></li>
+                <ng-container *ngIf="userInfo; else loginOptions">
+                    <li><a routerLink="/profile">Profile</a></li>
+                    <li><a routerLink="/my-uploads">My Uploads</a></li>
+                    <li><a (click)="logout()">Logout</a></li>
+                </ng-container>
+                <ng-template #loginOptions>
+                    <li><a (click)="signIn('github')">Sign in with GitHub</a></li>
+                    <li><a (click)="signIn('google')">Sign in with Google</a></li>
+                </ng-template>
             </ul>
         </div>
     </div>
