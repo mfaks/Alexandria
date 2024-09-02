@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/gorilla/pat"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 	"github.com/markbates/goth"
@@ -48,12 +50,23 @@ func main() {
 		google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "http://localhost:"+port+"/auth/google/callback"),
 	)
 
-	p := pat.New()
+	// Override the GetProviderName function
+	gothic.GetProviderName = func(req *http.Request) (string, error) {
+		provider := chi.URLParam(req, "provider")
+		if provider == "" {
+			return provider, fmt.Errorf("no provider specified")
+		}
+		return provider, nil
+	}
 
-	p.Get("/auth/{provider}/callback", func(res http.ResponseWriter, req *http.Request) {
-		user, err := gothic.CompleteUserAuth(res, req)
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	r.Get("/auth/{provider}/callback", func(w http.ResponseWriter, r *http.Request) {
+		user, err := gothic.CompleteUserAuth(w, r)
 		if err != nil {
-			http.Error(res, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -66,23 +79,23 @@ func main() {
 			Provider:  user.Provider,
 		}
 
-		res.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(res).Encode(jsonUser)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(jsonUser)
 	})
 
-	p.Get("/logout/{provider}", func(res http.ResponseWriter, req *http.Request) {
-		gothic.Logout(res, req)
-		res.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(res).Encode(map[string]string{"message": "Logged out successfully"})
+	r.Get("/auth/{provider}", func(w http.ResponseWriter, r *http.Request) {
+		gothic.BeginAuthHandler(w, r)
 	})
 
-	p.Get("/auth/{provider}", func(res http.ResponseWriter, req *http.Request) {
-		gothic.BeginAuthHandler(res, req)
+	r.Get("/logout/{provider}", func(w http.ResponseWriter, r *http.Request) {
+		gothic.Logout(w, r)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"})
 	})
 
-	p.Get("/", func(res http.ResponseWriter, req *http.Request) {
-		res.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(res).Encode(map[string][]string{
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string][]string{
 			"providers": {"github", "google"},
 		})
 	})
@@ -94,7 +107,7 @@ func main() {
 		AllowCredentials: true,
 	})
 
-	handler := c.Handler(p)
+	handler := c.Handler(r)
 
 	log.Printf("Server is running on http://localhost:%s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, handler))
