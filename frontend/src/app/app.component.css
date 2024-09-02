@@ -10,4 +10,66 @@
   --gray-400: oklch(70.9% 0.015 304.04);
   --light-blue: #f0f4f8;
   --muted-foreground: var(--gray-700);
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.bg-gray-50 {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: oklch(98.2% 0.003 184.83);
+}
+
+main {
+  flex: 1;
+}
+
+.container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.py-8 {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
 }

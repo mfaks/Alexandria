@@ -1,34 +1,53 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-
   private apiUrl = 'http://localhost:8080';
+
   constructor(private http: HttpClient) { }
 
-  getAuthUrl(provider: string): Observable<{ url: string }> {
-    return this.http.get<{ url: string }>(`${this.apiUrl}/auth/${provider}`);
+  initiateAuth(provider: string): void {
+    window.location.href = `${this.apiUrl}/auth/${provider}`;
   }
 
-  exchangeCodeForToken(provider: string, code: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/auth/${provider}`, { code });
+  fetchUserInfo(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/user/info`, { withCredentials: true })
+      .pipe(
+        tap(userInfo => {
+          this.setUserInfo(userInfo);
+        }),
+        catchError(error => {
+          console.error('Error fetching user info:', error);
+          return of(null);
+        })
+      );
   }
 
-  setUserInfo(userInfo: any) {
+  setUserInfo(userInfo: any): void {
     localStorage.setItem('userInfo', JSON.stringify(userInfo));
   }
 
-  getUserInfo() {
+  getUserInfo(): any {
     const userInfo = localStorage.getItem('userInfo');
     return userInfo ? JSON.parse(userInfo) : null;
   }
 
-  logout() {
-    localStorage.removeItem('userInfo');
+  logout(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/logout`, { withCredentials: true })
+      .pipe(
+        tap(response => {
+          localStorage.removeItem('userInfo');
+        }),
+        catchError(error => {
+          console.error('Error logging out:', error);
+          localStorage.removeItem('userInfo');
+          return of(null);
+        })
+      );
   }
-
 }

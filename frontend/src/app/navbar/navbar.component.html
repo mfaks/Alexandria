@@ -1,4 +1,4 @@
-<div class="navbar bg-base-100 flex items-center justify-between w-full px-4">
+<div class="navbar bg-base-100 flex items-center justify-between w-full px-4 py-4">
     <div class="flex-none flex items-center">
         <img src="library.svg" alt="Library Icon" class="w-6 h-6">
         <a routerLink="/" class="ml-3 text-xl hidden sm:inline">Alexandria</a>
@@ -15,20 +15,19 @@
             <a routerLink="/contact" class="text-xs sm:text-sm whitespace-nowrap">Contact</a>
         </nav>
         <div class="dropdown dropdown-end">
-            <div class="btn btn-ghost btn-circle avatar flex items-center justify-center">
-                <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full overflow-hidden flex items-center justify-center"
-                    *ngIf="userInfo; else defaultAvatar">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+                <div class="w-10 rounded-full" *ngIf="userInfo; else defaultAvatar">
                     <img [src]="userInfo.avatar" [alt]="userInfo.name + ' profile picture'"
-                        *ngIf="userInfo.avatar; else initialAvatar" class="w-full h-full object-cover" />
+                        *ngIf="userInfo.avatar; else initialAvatar" />
                     <ng-template #initialAvatar>
                         <div
                             class="bg-primary text-primary-content w-full h-full flex items-center justify-center text-lg font-semibold">
-                            {{ userInfo.name[0].toUpperCase() }}
+                            {{ userInfo?.email?.[0]?.toUpperCase() }}
                         </div>
                     </ng-template>
                 </div>
                 <ng-template #defaultAvatar>
-                    <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-gray-300 flex items-center justify-center p-1.5 sm:p-2">
+                    <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center p-2">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                             class="w-full h-full text-gray-600">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -37,15 +36,15 @@
                     </div>
                 </ng-template>
             </div>
-            <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+            <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[1]">
                 <ng-container *ngIf="userInfo; else loginOptions">
-                    <li><a routerLink="/profile">Profile</a></li>
                     <li><a routerLink="/my-uploads">My Uploads</a></li>
+                    <li><a routerLink="/library">The Library</a></li>
                     <li><a (click)="logout()">Logout</a></li>
                 </ng-container>
                 <ng-template #loginOptions>
-                    <li><a (click)="signIn('github')">Sign in with GitHub</a></li>
-                    <li><a (click)="signIn('google')">Sign in with Google</a></li>
+                    <li><a (click)="handleLogin('github')">Sign in with GitHub</a></li>
+                    <li><a (click)="handleLogin('google')">Sign in with Google</a></li>
                 </ng-template>
             </ul>
         </div>

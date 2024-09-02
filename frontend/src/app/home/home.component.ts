@@ -31,14 +31,7 @@ export class HomeComponent {
 
   constructor(private authService: AuthService) { }
 
-  signIn(provider: string) {
-    this.authService.getAuthUrl(provider).subscribe(
-      response => {
-        window.location.href = response.url;
-      },
-      error => {
-        console.error('Error getting auth URL', error);
-      }
-    );
+  handleLogin(provider: string) {
+    this.authService.initiateAuth(provider);
   }
 }

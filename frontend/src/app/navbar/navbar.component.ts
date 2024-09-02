@@ -20,23 +20,34 @@ export class NavbarComponent implements OnInit {
   ) { }
 
   ngOnInit() {
-    this.userInfo = this.authService.getUserInfo();
+    this.fetchUserInfo();
   }
 
-  signIn(provider: 'github' | 'google') {
-    this.authService.getAuthUrl(provider).subscribe(
-      (response: { url: string }) => {
-        window.location.href = response.url;
+  fetchUserInfo() {
+    this.authService.fetchUserInfo().subscribe(
+      userInfo => {
+        this.userInfo = userInfo;
       },
-      (error) => {
-        console.error('Error getting auth URL:', error);
+      error => {
+        console.error('Error fetching user info:', error);
+        this.userInfo = null;
       }
     );
   }
 
+  handleLogin(provider: string) {
+    this.authService.initiateAuth(provider);
+  }
+
   logout() {
-    this.authService.logout();
-    this.userInfo = null;
-    this.router.navigate(['/']);
+    this.authService.logout().subscribe(
+      () => {
+        this.userInfo = null;
+        this.router.navigate(['/']);
+      },
+      error => {
+        console.error('Error logging out:', error);
+      }
+    );
   }
 }
