@@ -50,7 +50,6 @@ func main() {
 		google.New(os.Getenv("GOOGLE_CLIENT_ID"), os.Getenv("GOOGLE_CLIENT_SECRET"), "http://localhost:"+port+"/auth/google/callback"),
 	)
 
-	// Override the GetProviderName function
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
 		provider := chi.URLParam(req, "provider")
 		if provider == "" {
@@ -70,17 +69,23 @@ func main() {
 			return
 		}
 
-		jsonUser := User{
-			Name:      user.Name,
-			Email:     user.Email,
-			NickName:  user.NickName,
-			AvatarURL: user.AvatarURL,
-			UserID:    user.UserID,
-			Provider:  user.Provider,
+		jsonData, err := json.Marshal(user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(jsonUser)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "user_data",
+			Value:    string(jsonData),
+			Path:     "/",
+			MaxAge:   3600,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+		})
+
+		http.Redirect(w, r, "http://localhost:4200/my-uploads", http.StatusTemporaryRedirect)
 	})
 
 	r.Get("/auth/{provider}", func(w http.ResponseWriter, r *http.Request) {
