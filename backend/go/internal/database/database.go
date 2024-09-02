@@ -38,3 +38,13 @@ func StoreUserInfo(db *sql.DB, user *models.User) error {
 
 	return err
 }
+
+func GetUserByID(db *sql.DB, userID string) (*models.User, error) {
+	user := &models.User{}
+	err := db.QueryRow("SELECT name, email, nickname, avatar_url, user_id, provider FROM users WHERE user_id = ?", userID).
+		Scan(&user.Name, &user.Email, &user.Nickname, &user.AvatarURL, &user.UserID, &user.Provider)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching user: %w", err)
+	}
+	return user, nil
+}

@@ -40,8 +40,9 @@ func New(cfg *config.Config, db *sql.DB) *http.Server {
 
 	r.Get("/auth/{provider}/callback", handlers.AuthCallback(db))
 	r.Get("/auth/{provider}", handlers.AuthProvider)
-	r.Get("/logout/{provider}", handlers.Logout)
+	r.Get("/logout", handlers.Logout)
 	r.Get("/", handlers.GetProviders)
+	r.Get("/user/info", handlers.GetUserInfo(db))
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
