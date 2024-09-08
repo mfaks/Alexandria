@@ -1,14 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-interface UploadedFile {
-  file: File;
-  url: string;
-}
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 interface Document {
-  title?: string;
+  _id?: string;
+  title: string;
   authors: string[];
   description?: string;
   categories: string[];
@@ -25,87 +22,25 @@ interface Document {
   imports: [CommonModule, FormsModule],
   templateUrl: './my-uploads.component.html'
 })
-export class MyUploadsComponent {
-  uploadedFiles: UploadedFile[] = [];
+export class MyUploadsComponent implements OnInit {
   documents: Document[] = [];
-
-  newDocument: Document = {
-    title: '',
-    authors: [],
-    description: '',
-    categories: [],
-    fileName: '',
-    thumbnailUrl: '',
-    lastUpdated: '',
-    isPublic: false
-  };
-
+  newDocument: Document = this.getEmptyDocument();
   showUploadForm = false;
   newCategory = '';
   newAuthor = '';
+  isEditing = false;
+  selectedFile: File | null = null;
 
-  async onFileSelected(event: any): Promise<void> {
-    const file: File = event.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      this.newDocument.fileName = file.name;
-      const url = URL.createObjectURL(file);
-      this.uploadedFiles.push({ file, url });
-      this.newDocument.fileUrl = url;
+  preloadedFileName: string | null = null;
 
-      // Generate thumbnail
-      this.newDocument.thumbnailUrl = await this.generateThumbnail(file);
-    } else {
-      alert('Please select a PDF file.');
-    }
+  constructor(private http: HttpClient) { }
+
+  ngOnInit() {
+    this.loadDocuments();
   }
 
-  async generateThumbnail(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (e: any) => {
-        const pdfData = new Uint8Array(e.target.result);
-        try {
-          const pdf = await (window as any).pdfjsLib.getDocument({ data: pdfData }).promise;
-          const page = await pdf.getPage(1);
-          const scale = 1.5;
-          const viewport = page.getViewport({ scale });
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          await page.render({ canvasContext: context, viewport }).promise;
-          resolve(canvas.toDataURL());
-        } catch (error) {
-          console.error('Error generating thumbnail:', error);
-          resolve('/assets/pdf-placeholder.png');
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  async submitDocument(): Promise<void> {
-    if (!this.newDocument.fileName) {
-      alert('Please select a PDF file.');
-      return;
-    }
-
-    const newDoc: Document = {
-      ...this.newDocument,
-      lastUpdated: 'Just now'
-    };
-
-    if (!newDoc.title) delete newDoc.title;
-    if (!newDoc.description) delete newDoc.description;
-    if (newDoc.authors.length === 0) newDoc.authors = ['Anonymous'];
-
-    this.documents.unshift(newDoc);
-    this.resetForm();
-  }
-
-  resetForm(): void {
-    this.newDocument = {
+  getEmptyDocument(): Document {
+    return {
       title: '',
       authors: [],
       description: '',
@@ -115,28 +50,129 @@ export class MyUploadsComponent {
       lastUpdated: '',
       isPublic: false
     };
-    this.uploadedFiles = [];
+  }
+
+  loadDocuments() {
+    this.http.get<Document[]>('http://localhost:8000/user_documents', { withCredentials: true })
+      .subscribe(
+        (documents) => {
+          this.documents = documents;
+        },
+        (error) => {
+          console.error('Error loading documents:', error);
+        }
+      );
+  }
+  
+
+  onFileSelected(event: any): void {
+    const file: File = event.target.files[0];
+    if (file && file.type === 'application/pdf') {
+      this.selectedFile = file;
+      this.newDocument.fileName = file.name;
+      this.preloadedFileName = null
+    } else {
+      alert('Please select a PDF file.');
+    }
+  }
+
+  submitDocument(): void {
+    const formData = new FormData();
+    
+    const documentData = {
+      title: this.newDocument.title,
+      authors: this.newDocument.authors,
+      description: this.newDocument.description,
+      categories: this.newDocument.categories,
+      isPublic: this.newDocument.isPublic
+    };
+  
+    formData.append('document', JSON.stringify(documentData));
+  
+    if (this.selectedFile) {
+      formData.append('file', this.selectedFile);
+    } else if (this.isEditing && this.preloadedFileName) {
+      formData.append('keepExistingFile', 'true');
+    }
+  
+    const headers = new HttpHeaders();
+  
+    if (this.isEditing && this.newDocument._id) {
+      this.http.put(`http://localhost:8000/update_document/${this.newDocument._id}`, formData, { headers, withCredentials: true })
+        .subscribe(
+          () => {
+            this.loadDocuments();
+            this.resetForm();
+          },
+          (error) => {
+            console.error('Error updating document:', error);
+          }
+        );
+    } else {
+      this.http.post('http://localhost:8000/upload_document', formData, { headers, withCredentials: true })
+        .subscribe(
+          () => {
+            this.loadDocuments();
+            this.resetForm();
+          },
+          (error) => {
+            console.error('Error uploading document:', error);
+          }
+        );
+    }
+  }
+  resetForm(): void {
+    this.newDocument = this.getEmptyDocument();
+    this.selectedFile = null;
+    this.preloadedFileName = null;
     this.showUploadForm = false;
+    this.isEditing = false;
     this.newCategory = '';
     this.newAuthor = '';
   }
 
   downloadDocument(document: Document): void {
-    if (document.fileUrl) {
-      window.open(document.fileUrl, '_blank');
+    if (document._id) {
+      this.http.get(`http://localhost:8000/download_document/${document._id}`, {
+        responseType: 'blob',
+        withCredentials: true
+      }).subscribe(
+        (blob: Blob) => {
+          const url = window.URL.createObjectURL(blob);
+
+          const a = window.document.createElement('a');
+          a.href = url;
+          a.download = document.fileName || 'document.pdf';
+          window.document.body.appendChild(a);
+          a.click();
+          window.document.body.removeChild(a);
+
+          window.open(url, '_blank');
+
+          setTimeout(() => window.URL.revokeObjectURL(url), 100);
+        },
+        (error) => {
+          console.error('Error downloading document:', error);
+          alert('Error downloading document. Please try again.');
+        }
+      );
     } else {
-      console.error('No file URL available for', document.fileName);
+      console.error('Document ID is missing');
+      alert('Unable to download document. Document ID is missing.');
     }
   }
 
   deleteDocument(document: Document): void {
     if (confirm(`Are you sure you want to delete "${document.title || document.fileName}"?`)) {
-      this.documents = this.documents.filter(doc => doc.fileName !== document.fileName);
-      this.uploadedFiles = this.uploadedFiles.filter(file => file.file.name !== document.fileName);
-      if (document.fileUrl) {
-        URL.revokeObjectURL(document.fileUrl);
-      }
-      console.log('Deleted', document.fileName);
+      this.http.delete(`http://localhost:8000/delete_document/${document._id}`, { withCredentials: true })
+        .subscribe(
+          () => {
+            this.loadDocuments();
+          },
+          (error) => {
+            console.error('Error deleting document:', error);
+          }
+        );
     }
   }
 
@@ -148,27 +184,54 @@ export class MyUploadsComponent {
     console.log('Opening chat for', document.title || document.fileName);
   }
 
-  toggleVisibility(document: Document): void {
-    document.isPublic = !document.isPublic;
-    const action = document.isPublic ? 'public' : 'private';
-    console.log(`${document.title || document.fileName} is now ${action}`);
+  editDocument(document: Document): void {
+    this.isEditing = true;
+    this.showUploadForm = true;
+    this.newDocument = { ...document };
+    this.preloadedFileName = document.fileName;
+    this.scrollToTop();
   }
 
   addCategory(): void {
-    if (this.newCategory && !this.newDocument.categories.includes(this.newCategory)) {
-      this.newDocument.categories.push(this.newCategory);
+    if (this.newCategory.trim()) {
+      const categories = this.newCategory.split(/[,\s]+/).map(cat => cat.trim()).filter(cat => cat);
+      categories.forEach(category => {
+        if (!this.newDocument.categories.includes(category)) {
+          this.newDocument.categories.push(category);
+        }
+      });
       this.newCategory = '';
     }
   }
+
+  onCategoryInput(event: KeyboardEvent): void {
+    if (event.key === ',' || event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      this.addCategory();
+    }
+  }
+
 
   removeCategory(category: string): void {
     this.newDocument.categories = this.newDocument.categories.filter(c => c !== category);
   }
 
   addAuthor(): void {
-    if (this.newAuthor && !this.newDocument.authors.includes(this.newAuthor)) {
-      this.newDocument.authors.push(this.newAuthor);
+    if (this.newAuthor.trim()) {
+      const authors = this.newAuthor.split(/[,\s]+/).map(author => author.trim()).filter(author => author);
+      authors.forEach(author => {
+        if (!this.newDocument.authors.includes(author)) {
+          this.newDocument.authors.push(author);
+        }
+      });
       this.newAuthor = '';
+    }
+  }
+
+  onAuthorInput(event: KeyboardEvent): void {
+    if (event.key === ',' || event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      this.addAuthor();
     }
   }
 
@@ -180,10 +243,14 @@ export class MyUploadsComponent {
     this.newDocument.thumbnailUrl = '';
     this.newDocument.fileName = '';
     this.newDocument.fileUrl = '';
-    this.uploadedFiles = [];
+    this.selectedFile = null;
     const fileInput = document.getElementById('file') as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
     }
+  }
+
+  scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
