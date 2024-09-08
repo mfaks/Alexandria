@@ -1,3 +1,4 @@
 python/venv
 python/__pycache__
+python/.env
 go/.env
