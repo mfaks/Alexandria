@@ -56,7 +56,7 @@ class ChatMessage(BaseModel):
     role: str
     content: str
 
-
+@app.get("/user_info/")
 async def get_user_info(gothic_session: Optional[str] = Cookie(None)):
     if not gothic_session:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -71,7 +71,11 @@ async def get_user_info(gothic_session: Optional[str] = Cookie(None)):
         raise HTTPException(
             status_code=401, detail="Invalid or expired session")
 
-    return response.json()
+    user_info = response.json()
+    
+    return {
+        "email": user_info.get("email")
+    }
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -132,7 +136,26 @@ async def get_user_documents(user_info: dict = Depends(get_user_info)):
         "isPublic": doc.get("isPublic"),
         "fileSize": doc.get("fileSize"),
         "thumbnailUrl": f"/thumbnail/{str(doc['_id'])}" if "thumbnailUrl" in doc else None,
+        "user_email": doc.get("user_email"),
     } for doc in user_documents]
+
+
+@app.get("/public_documents/")
+async def get_public_documents():
+    public_documents = collection.find({"isPublic": True})
+    return [{
+        "_id": str(doc["_id"]),
+        "title": doc.get("title"),
+        "authors": doc.get("authors"),
+        "description": doc.get("description"),
+        "categories": doc.get("categories"),
+        "fileName": doc.get("fileName"),
+        "lastUpdated": doc.get("lastUpdated"),
+        "isPublic": doc.get("isPublic"),
+        "fileSize": doc.get("fileSize"),
+        "thumbnailUrl": f"/thumbnail/{str(doc['_id'])}" if "thumbnailUrl" in doc else None,
+        "user_email": doc.get("user_email"),
+    } for doc in public_documents]
 
 
 @app.get("/thumbnail/{document_id}")

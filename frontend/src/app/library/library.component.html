@@ -1,0 +1,47 @@
+<div class="flex h-screen">
+    <div class="w-1/6 bg-gray-100 border-r border-gray-200">
+        <app-filter-sidebar [documents]="documents" [currentUserEmail]="currentUserEmail"
+            [isLibraryRoute]="isLibraryRoute" (filtersChanged)="applyFilters($event)"></app-filter-sidebar>
+    </div>
+    <div class="flex-1 mr-2 ml-2 overflow-y-auto">
+        <div class="w-full">
+            <div class="flex items-center justify-between">
+                <div class="flex-grow mt-6">
+                    <h2 class="text-xl font-semibold text-center">📚 The Library 📚</h2>
+                </div>
+            </div>
+        </div>
+        <div class="flex-grow overflow-y-auto">
+            <div class="border-t border-gray-200 mb-4"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div *ngFor="let document of filteredDocuments"
+                    class="bg-white p-4 rounded-lg shadow-md flex flex-col max-w-[240px]">
+                    <div class="flex justify-center mb-4">
+                        <img [src]="document.thumbnailUrl" [alt]="(document.title || document.fileName)" width="120"
+                            height="150" class="rounded-md object-cover" />
+                    </div>
+                    <div class="mb-4 flex-grow">
+                        <h3 class="text-md font-medium truncate">{{ document.title || document.fileName }}</h3>
+                        <p class="text-gray-600 text-xs truncate">Author(s): {{ document.authors.join(', ') }}</p>
+                        <p *ngIf="document.description" class="text-gray-600 text-xs truncate">Description: {{
+                            document.description }}</p>
+                        <p *ngIf="document.categories.length > 0" class="text-gray-600 text-xs truncate">Category(-ies):
+                            {{ document.categories.join(', ') }}</p>
+                        <p class="text-gray-600 text-xs truncate">Last updated: {{ document.lastUpdated |
+                            date:'MM/dd/yyyy' }}</p>
+                    </div>
+                    <div class="flex flex-col space-y-1">
+                        <button class="btn btn-outline btn-xs w-full" (click)="chatAboutDocument(document)">💬
+                            Chat</button>
+                        <button class="btn btn-outline btn-xs w-full" (click)="downloadDocument(document)">⬇️
+                            Download</button>
+                        <ng-container *ngIf="isCurrentUserDocument(document)">
+                            <button class="btn btn-outline btn-xs w-full" (click)="navigateToMyUploads()">✏️ Edit
+                                Upload</button>
+                        </ng-container>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

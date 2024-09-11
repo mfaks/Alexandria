@@ -10,15 +10,17 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './filter-sidebar.component.css'
 })
 export class FilterSidebarComponent {
-
   @Input() documents: any[] = [];
+  @Input() currentUserEmail: string = '';
+  @Input() isLibraryRoute: boolean = false;
   @Output() filtersChanged = new EventEmitter<any>();
 
   filters = {
     search: '',
-    authors: {} as { [key: string]: boolean},
-    categories: {} as { [key: string]: boolean},
-    visibility: 'all'
+    authors: {} as { [key: string]: boolean },
+    categories: {} as { [key: string]: boolean },
+    visibility: 'all',
+    uploadedBy: 'all'
   }
 
   get uniqueAuthors(): string[] {
@@ -29,7 +31,7 @@ export class FilterSidebarComponent {
     return [...new Set(this.documents.flatMap(doc => doc.categories))]
   }
 
-  onFilterChange(): void{
+  onFilterChange(): void {
     this.filtersChanged.emit(this.filters);
   }
 
@@ -38,7 +40,8 @@ export class FilterSidebarComponent {
       search: '',
       authors: {},
       categories: {},
-      visibility: 'all'
+      visibility: 'all',
+      uploadedBy: 'all'
     }
     this.onFilterChange();
   }
