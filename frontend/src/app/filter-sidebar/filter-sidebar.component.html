@@ -1,0 +1,40 @@
+<div class="h-screen overflow-y-auto bg-gray-200">
+    <div class="bg-gray-50 p-6 rounded-lg shadow-lg h-full">
+        <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2 text-center">🗂️ Filters 🗂️</h3>        
+        <div class="mb-6">
+            <label for="search" class="block text-lg font-semibold text-gray-700 mb-2">Search</label>
+            <input type="text" id="search" [(ngModel)]="filters.search" (ngModelChange)="onFilterChange()"
+                class="input input-bordered w-full rounded-lg text-lg p-3" placeholder="Search documents...">
+        </div>
+        <div class="mb-6">
+            <label class="text-lg font-semibold text-gray-700 mb-3">Authors</label>
+            <div class="space-y-2">
+                <div *ngFor="let author of uniqueAuthors" class="flex items-center">
+                    <input type="checkbox" [id]="'author-' + author" [(ngModel)]="filters.authors[author]"
+                        (ngModelChange)="onFilterChange()" class="checkbox checkbox-primary mr-3 rounded">
+                    <label [for]="'author-' + author" class="text-base cursor-pointer">{{ author }}</label>
+                </div>
+            </div>
+        </div>
+        <div class="mb-6">
+            <label class="text-lg font-semibold text-gray-700 mb-3">Categories</label>
+            <div class="space-y-2">
+                <div *ngFor="let category of uniqueCategories" class="flex items-center">
+                    <input type="checkbox" [id]="'category-' + category" [(ngModel)]="filters.categories[category]"
+                        (ngModelChange)="onFilterChange()" class="checkbox checkbox-primary mr-3 rounded">
+                    <label [for]="'category-' + category" class="text-base cursor-pointer">{{ category }}</label>
+                </div>
+            </div>
+        </div>
+        <div class="mb-6">
+            <label class="block text-lg font-semibold text-gray-700 mb-2">Visibility</label>
+            <select [(ngModel)]="filters.visibility" (ngModelChange)="onFilterChange()"
+                class="select select-bordered w-full rounded-lg text-lg p-3">
+                <option value="all">All</option>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+            </select>
+        </div>
+        <button (click)="clearFilters()" class="btn btn-outline btn-lg w-full rounded-lg text-lg">Clear Filters</button>
+    </div>
+</div>
