@@ -1,8 +1,7 @@
 <div class="form-control w-full max-w-3xl relative">
-    <input type="text" [(ngModel)]="searchText" placeholder="Search the Alexandria Library"
-        class="input input-bordered w-full pr-10 text-sm"
-        [disabled]="!userInfo"
-        [attr.aria-disabled]="!userInfo" />
+    <input type="text" [(ngModel)]="searchText" (keyup.enter)="searchDocuments()"
+        placeholder="Search the Alexandria Library" class="input input-bordered w-full pr-10 text-sm"
+        [disabled]="!userInfo" [attr.aria-disabled]="!userInfo" />
     @if (searchText && userInfo) {
     <button (click)="clearSearch()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
         aria-label="Clear search">
