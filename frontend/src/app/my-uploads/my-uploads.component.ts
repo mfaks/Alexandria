@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
 
 interface Document {
   _id?: string;
@@ -19,11 +20,12 @@ interface Document {
 @Component({
   selector: 'app-my-uploads',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, FilterSidebarComponent],
   templateUrl: './my-uploads.component.html'
 })
 export class MyUploadsComponent implements OnInit {
   documents: Document[] = [];
+  filteredDocuments: Document[] = [];
   newDocument: Document = this.getEmptyDocument();
   showUploadForm = false;
   newCategory = '';
@@ -57,13 +59,34 @@ export class MyUploadsComponent implements OnInit {
       .subscribe(
         (documents) => {
           this.documents = documents;
+          this.filteredDocuments = documents;
         },
         (error) => {
           console.error('Error loading documents:', error);
         }
       );
   }
-  
+
+  applyFilters(filters: any) {
+    this.filteredDocuments = this.documents.filter(doc => {
+      const searchMatch = doc.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+        doc.description?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        doc.authors.some(author => author.toLowerCase().includes(filters.search.toLowerCase())) ||
+        doc.categories.some(category => category.toLowerCase().includes(filters.search.toLowerCase()));
+
+      const authorMatch = Object.keys(filters.authors).length === 0 ||
+        doc.authors.some(author => filters.authors[author]);
+
+      const categoryMatch = Object.keys(filters.categories).length === 0 ||
+        doc.categories.some(category => filters.categories[category]);
+
+      const visibilityMatch = filters.visibility === 'all' ||
+        (filters.visibility === 'public' && doc.isPublic) ||
+        (filters.visibility === 'private' && !doc.isPublic);
+
+      return searchMatch && authorMatch && categoryMatch && visibilityMatch;
+    });
+  }
 
   onFileSelected(event: any): void {
     const file: File = event.target.files[0];
@@ -78,7 +101,7 @@ export class MyUploadsComponent implements OnInit {
 
   submitDocument(): void {
     const formData = new FormData();
-    
+
     const documentData = {
       title: this.newDocument.title,
       authors: this.newDocument.authors,
@@ -86,17 +109,17 @@ export class MyUploadsComponent implements OnInit {
       categories: this.newDocument.categories,
       isPublic: this.newDocument.isPublic
     };
-  
+
     formData.append('document', JSON.stringify(documentData));
-  
+
     if (this.selectedFile) {
       formData.append('file', this.selectedFile);
     } else if (this.isEditing && this.preloadedFileName) {
       formData.append('keepExistingFile', 'true');
     }
-  
+
     const headers = new HttpHeaders();
-  
+
     if (this.isEditing && this.newDocument._id) {
       this.http.put(`http://localhost:8000/update_document/${this.newDocument._id}`, formData, { headers, withCredentials: true })
         .subscribe(
