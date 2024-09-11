@@ -35,6 +35,15 @@
                 <option value="private">Private</option>
             </select>
         </div>
+        <div *ngIf="isLibraryRoute" class="mb-6">
+            <label class="block text-lg font-semibold text-gray-700 mb-2">Uploaded By</label>
+            <select [(ngModel)]="filters.uploadedBy" (ngModelChange)="onFilterChange()"
+                class="select select-bordered w-full rounded-lg text-lg p-3">
+                <option value="all">All</option>
+                <option value="me">Uploaded by me</option>
+                <option value="others">Uploaded by others</option>
+            </select>
+        </div>
         <button (click)="clearFilters()" class="btn btn-outline btn-lg w-full rounded-lg text-lg">Clear Filters</button>
     </div>
 </div>

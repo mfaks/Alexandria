@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
 
 @Component({
@@ -14,7 +15,7 @@ export class NavSearchComponent implements OnInit {
   searchText: string = '';
   userInfo: any;
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private router: Router) {}
 
   ngOnInit() {
     this.userInfo = this.authService.getUserInfo();
@@ -30,5 +31,10 @@ export class NavSearchComponent implements OnInit {
 
   clearSearch(): void {
     this.searchText = '';
+    this.searchDocuments();
+  }
+
+  searchDocuments(): void {
+    this.router.navigate(['/library'], { queryParams: { search: this.searchText } });
   }
 }
