@@ -154,13 +154,10 @@ export class LibraryComponent implements OnInit {
   }
 
   chatAboutDocument(document: Document): void {
-    console.log('Opening chat for', document.title || document.fileName);
-    // Implement chat functionality
+    this.router.navigate(['/chat']);
   }
 
   isCurrentUserDocument(document: Document): boolean {
-    console.log(document.user_email)
-    console.log(this.currentUserEmail)
     return document.user_email === this.currentUserEmail;
   }
 

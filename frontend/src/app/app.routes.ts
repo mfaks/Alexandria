@@ -4,12 +4,14 @@ import { MyUploadsComponent } from './my-uploads/my-uploads.component';
 import { authGuard } from './auth.guard';
 import { NgModule } from '@angular/core';
 import { LibraryComponent } from './library/library.component';
+import { ChatComponent } from './chat/chat.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
   { path: 'my-uploads', component: MyUploadsComponent, canActivate: [authGuard] },
   { path: 'library', component: LibraryComponent, canActivate: [authGuard] },
+  { path: 'chat', component: ChatComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '/home' },
 ];
 

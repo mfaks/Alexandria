@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
+import { Router } from '@angular/router';
 
 interface Document {
   _id?: string;
@@ -35,7 +36,7 @@ export class MyUploadsComponent implements OnInit {
 
   preloadedFileName: string | null = null;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private router: Router) { }
 
   ngOnInit() {
     this.loadDocuments();
@@ -204,7 +205,7 @@ export class MyUploadsComponent implements OnInit {
   }
 
   chatAboutDocument(document: Document): void {
-    console.log('Opening chat for', document.title || document.fileName);
+    this.router.navigate(['/chat']);
   }
 
   editDocument(document: Document): void {
