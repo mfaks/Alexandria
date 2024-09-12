@@ -5,7 +5,7 @@ from PyPDF2 import PdfReader
 from bson import json_util
 import certifi
 from dotenv import load_dotenv
-from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Response, UploadFile, logger
+from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Response, UploadFile, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import httpx
@@ -123,8 +123,9 @@ async def upload_document(
 
 
 @app.get("/user_documents/")
-async def get_user_documents(user_info: dict = Depends(get_user_info)):
+async def get_user_documents(request: Request, user_info: dict = Depends(get_user_info)):
     user_documents = collection.find({"user_email": user_info["email"]})
+    base_url = str(request.base_url)
     return [{
         "_id": str(doc["_id"]),
         "title": doc.get("title"),
@@ -135,14 +136,23 @@ async def get_user_documents(user_info: dict = Depends(get_user_info)):
         "lastUpdated": doc.get("lastUpdated"),
         "isPublic": doc.get("isPublic"),
         "fileSize": doc.get("fileSize"),
-        "thumbnailUrl": f"/thumbnail/{str(doc['_id'])}" if "thumbnailUrl" in doc else None,
+        "thumbnailUrl": f"{base_url}thumbnail/{str(doc['_id'])}" if "thumbnailUrl" in doc else None,
         "user_email": doc.get("user_email"),
     } for doc in user_documents]
-
+    
+@app.get("/thumbnail/{document_id}")
+async def get_thumbnail(document_id: str, user_info: dict = Depends(get_user_info)):
+    document = collection.find_one(
+        {"_id": ObjectId(document_id), "user_email": user_info["email"]}
+    )
+    if not document or "thumbnailUrl" not in document:
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+    return Response(content=document["thumbnailUrl"], media_type="image/png")
 
 @app.get("/public_documents/")
-async def get_public_documents():
+async def get_public_documents(request: Request):
     public_documents = collection.find({"isPublic": True})
+    base_url = str(request.base_url)
     return [{
         "_id": str(doc["_id"]),
         "title": doc.get("title"),
@@ -153,7 +163,7 @@ async def get_public_documents():
         "lastUpdated": doc.get("lastUpdated"),
         "isPublic": doc.get("isPublic"),
         "fileSize": doc.get("fileSize"),
-        "thumbnailUrl": f"/thumbnail/{str(doc['_id'])}" if "thumbnailUrl" in doc else None,
+        "thumbnailUrl": f"{base_url}thumbnail/{str(doc['_id'])}" if "thumbnailUrl" in doc else None,
         "user_email": doc.get("user_email"),
     } for doc in public_documents]
 
