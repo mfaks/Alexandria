@@ -4,9 +4,11 @@ import { HttpClient } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
 import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { SearchService } from '../search.service';
+import { FormsModule } from '@angular/forms';
 
 interface Document {
-  _id?: string;
+  _id: string;
   title: string;
   authors: string[];
   description?: string;
@@ -15,27 +17,28 @@ interface Document {
   thumbnailUrl: string;
   lastUpdated: string;
   isPublic: boolean;
-  fileUrl?: string;
   user_email: string;
+  similarity_score?: number;
 }
 
 @Component({
   selector: 'app-library',
   standalone: true,
-  imports: [CommonModule, FilterSidebarComponent],
+  imports: [CommonModule, FilterSidebarComponent, FormsModule],
   templateUrl: './library.component.html'
 })
 export class LibraryComponent implements OnInit {
   documents: Document[] = [];
   filteredDocuments: Document[] = [];
   currentUserEmail: string = '';
-  searchQuery: string | null = null;
+  semanticSearchQuery: string = '';
   isLibraryRoute: boolean = false;
 
   constructor(
     private http: HttpClient, 
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private searchService: SearchService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -46,8 +49,12 @@ export class LibraryComponent implements OnInit {
 
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
-      this.searchQuery = params['search'] !== undefined ? params['search'] : null;
-      this.loadPublicDocuments();
+      if (params['search']) {
+        this.semanticSearchQuery = params['search'];
+        this.performSemanticSearch();
+      } else {
+        this.loadPublicDocuments();
+      }
     });
     this.getCurrentUser();
   }
@@ -68,8 +75,11 @@ export class LibraryComponent implements OnInit {
     this.http.get<Document[]>('http://localhost:8000/public_documents', { withCredentials: true })
       .subscribe(
         (documents) => {
-          this.documents = documents;
-          this.applySearchFilter();
+          this.documents = documents.map(doc => ({
+            ...doc,
+            thumbnailUrl: `http://localhost:8000/thumbnail/${doc._id}`
+          }));
+          this.filteredDocuments = this.documents;
         },
         (error) => {
           console.error('Error loading public documents:', error);
@@ -77,33 +87,26 @@ export class LibraryComponent implements OnInit {
       );
   }
 
-  applySearchFilter() {
-    if (this.searchQuery !== null && this.searchQuery !== '') {
-      this.filteredDocuments = this.documents.filter(doc => 
-        doc.title.toLowerCase().includes(this.searchQuery!.toLowerCase()) ||
-        doc.description?.toLowerCase().includes(this.searchQuery!.toLowerCase()) ||
-        doc.authors.some(author => author.toLowerCase().includes(this.searchQuery!.toLowerCase())) ||
-        doc.categories.some(category => category.toLowerCase().includes(this.searchQuery!.toLowerCase()))
+  performSemanticSearch() {
+    if (this.semanticSearchQuery) {
+      this.searchService.searchDocuments(this.semanticSearchQuery).subscribe(
+        (results: Document[]) => {
+          this.documents = results;
+          this.filteredDocuments = this.documents;
+        },
+        (error) => {
+          console.error('Error searching documents:', error);
+        }
       );
     } else {
-      this.filteredDocuments = this.documents;
+      this.loadPublicDocuments();
     }
-  }
-
-  clearSearch() {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { search: '' },
-      queryParamsHandling: 'merge'
-    });
   }
 
   applyFilters(filters: any) {
     this.filteredDocuments = this.documents.filter(doc => {
-      const searchMatch = doc.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-        doc.description?.toLowerCase().includes(filters.search.toLowerCase()) ||
-        doc.authors.some(author => author.toLowerCase().includes(filters.search.toLowerCase())) ||
-        doc.categories.some(category => category.toLowerCase().includes(filters.search.toLowerCase()));
+      const titleMatch = !filters.titleSearch || 
+        doc.title.toLowerCase().includes(filters.titleSearch.toLowerCase());
 
       const authorMatch = Object.keys(filters.authors).length === 0 ||
         doc.authors.some(author => filters.authors[author]);
@@ -118,9 +121,12 @@ export class LibraryComponent implements OnInit {
           (filters.uploadedBy === 'others' && doc.user_email !== this.currentUserEmail);
       }
 
-      return searchMatch && authorMatch && categoryMatch && uploadedByMatch;
+      return titleMatch && authorMatch && categoryMatch && uploadedByMatch;
     });
+
+    this.filteredDocuments.sort((a, b) => (b.similarity_score || 0) - (a.similarity_score || 0));
   }
+
 
   downloadDocument(document: Document): void {
     if (document._id) {
@@ -154,13 +160,10 @@ export class LibraryComponent implements OnInit {
   }
 
   chatAboutDocument(document: Document): void {
-    console.log('Opening chat for', document.title || document.fileName);
-    // Implement chat functionality
+    this.router.navigate(['/chat', document._id]);
   }
 
   isCurrentUserDocument(document: Document): boolean {
-    console.log(document.user_email)
-    console.log(this.currentUserEmail)
     return document.user_email === this.currentUserEmail;
   }
 

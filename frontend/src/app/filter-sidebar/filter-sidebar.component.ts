@@ -16,7 +16,7 @@ export class FilterSidebarComponent {
   @Output() filtersChanged = new EventEmitter<any>();
 
   filters = {
-    search: '',
+    titleSearch: '',
     authors: {} as { [key: string]: boolean },
     categories: {} as { [key: string]: boolean },
     visibility: 'all',
@@ -37,7 +37,7 @@ export class FilterSidebarComponent {
 
   clearFilters(): void {
     this.filters = {
-      search: '',
+      titleSearch: '',
       authors: {},
       categories: {},
       visibility: 'all',

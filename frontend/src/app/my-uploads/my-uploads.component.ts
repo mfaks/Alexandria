@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
+import { Router } from '@angular/router';
 
 interface Document {
   _id?: string;
@@ -35,7 +36,7 @@ export class MyUploadsComponent implements OnInit {
 
   preloadedFileName: string | null = null;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private router: Router) { }
 
   ngOnInit() {
     this.loadDocuments();
@@ -69,10 +70,8 @@ export class MyUploadsComponent implements OnInit {
 
   applyFilters(filters: any) {
     this.filteredDocuments = this.documents.filter(doc => {
-      const searchMatch = doc.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-        doc.description?.toLowerCase().includes(filters.search.toLowerCase()) ||
-        doc.authors.some(author => author.toLowerCase().includes(filters.search.toLowerCase())) ||
-        doc.categories.some(category => category.toLowerCase().includes(filters.search.toLowerCase()));
+      const titleMatch = !filters.titleSearch || 
+      doc.title.toLowerCase().includes(filters.titleSearch.toLowerCase());
 
       const authorMatch = Object.keys(filters.authors).length === 0 ||
         doc.authors.some(author => filters.authors[author]);
@@ -84,7 +83,7 @@ export class MyUploadsComponent implements OnInit {
         (filters.visibility === 'public' && doc.isPublic) ||
         (filters.visibility === 'private' && !doc.isPublic);
 
-      return searchMatch && authorMatch && categoryMatch && visibilityMatch;
+      return titleMatch && authorMatch && categoryMatch && visibilityMatch;
     });
   }
 
@@ -204,7 +203,7 @@ export class MyUploadsComponent implements OnInit {
   }
 
   chatAboutDocument(document: Document): void {
-    console.log('Opening chat for', document.title || document.fileName);
+    this.router.navigate(['/chat', document._id]);
   }
 
   editDocument(document: Document): void {
