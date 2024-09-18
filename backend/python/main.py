@@ -347,7 +347,7 @@ async def chat_with_pdf(chat_request: ChatRequest):
 
 
 @app.post("/search_documents/")
-async def search_documents(search_query: SearchQuery, user_info: dict = Depends(get_user_info)):
+async def search_documents(search_query: SearchQuery, request: Request, user_info: dict = Depends(get_user_info)):
     try:
         query_embedding = embeddings.embed_query(search_query.query)
 
@@ -364,7 +364,14 @@ async def search_documents(search_query: SearchQuery, user_info: dict = Depends(
                 "$project": {
                     "score": {"$meta": "vectorSearchScore"},
                     "title": 1,
+                    "authors": 1,
                     "description": 1,
+                    "categories": 1,
+                    "fileName": 1,
+                    "thumbnailUrl": 1,
+                    "lastUpdated": 1,
+                    "isPublic": 1,
+                    "user_email": 1,
                     "_id": 1
                 }
             }
@@ -372,17 +379,25 @@ async def search_documents(search_query: SearchQuery, user_info: dict = Depends(
 
         results = list(collection.aggregate(vector_search_query))
 
+        base_url = str(request.base_url)
         return [
             {
                 "_id": str(doc["_id"]),
                 "title": doc["title"],
+                "authors": doc["authors"],
                 "description": doc.get("description"),
+                "categories": doc["categories"],
+                "fileName": doc["fileName"],
+                "thumbnailUrl": f"{base_url}thumbnail/{str(doc['_id'])}",
+                "lastUpdated": doc["lastUpdated"],
+                "isPublic": doc["isPublic"],
+                "user_email": doc["user_email"],
                 "similarity_score": doc["score"]
             } for doc in results
         ]
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Internal server error: {str(e)}")
-
+        
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
