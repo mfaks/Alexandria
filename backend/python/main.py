@@ -52,7 +52,9 @@ GO_BACKEND_URL = os.getenv("GO_BACKEND_URL")
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 embeddings = OpenAIEmbeddings()
 
-vector_store = MongoDBAtlasVectorSearch(collection, embeddings, index_name="vector_index")
+vector_store = MongoDBAtlasVectorSearch(
+    collection, embeddings, index_name="alexandria_vector_index")
+
 
 class Document(BaseModel):
     title: str
@@ -104,6 +106,7 @@ def extract_text_from_pdf(pdf_reader):
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 @app.post("/upload_document/")
 async def upload_document(
     file: UploadFile = File(...),
@@ -111,40 +114,30 @@ async def upload_document(
     user_info: dict = Depends(get_user_info)
 ):
     try:
-        logger.info(f"Starting document upload for user: {user_info['email']}")
         document_data = json_util.loads(document)
         validated_document = Document(**document_data)
 
         file_content = await file.read()
-        logger.info(f"File read successfully: {file.filename}")
 
         pdf_document = fitz.open(stream=file_content, filetype="pdf")
         first_page = pdf_document.load_page(0)
         pix = first_page.get_pixmap(matrix=fitz.Matrix(2, 2))
         thumbnail = pix.tobytes("png")
-        logger.info("Thumbnail created successfully")
 
         pdf_reader = PdfReader(io.BytesIO(file_content))
         pdf_text = extract_text_from_pdf(pdf_reader)
-        logger.info("Text extracted from PDF")
 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000, chunk_overlap=150)
         chunks = text_splitter.split_text(pdf_text)
-        logger.info(f"Text split into {len(chunks)} chunks")
 
-        logger.info("Starting embedding generation")
-        chunk_embeddings = []
-        for i, chunk in enumerate(chunks):
-            try:
-                embedding = embeddings.embed_query(chunk)
-                chunk_embeddings.append(embedding)
-                logger.info(f"Embedding generated for chunk {i+1}/{len(chunks)}")
-            except RateLimitError as e:
-                logger.error(f"Rate limit error while generating embedding for chunk {i+1}: {str(e)}")
-                raise
-            except Exception as e:
-                logger.error(f"Error generating embedding for chunk {i+1}: {str(e)}")
-                raise
+        logger.info("Starting embedding generation for entire document")
+        try:
+            document_embedding = embeddings.embed_query(pdf_text)
+            logger.info("Embedding generated for entire document")
+        except Exception as e:
+            logger.error(f"Error generating embedding: {str(e)}")
+            raise
 
         document_to_insert = {
             **validated_document.dict(),
@@ -155,23 +148,17 @@ async def upload_document(
             "fileSize": len(file_content),
             "thumbnailUrl": Binary(thumbnail),
             "text_content": pdf_text,
-            "chunks": [
-                {"text": chunk, "embedding": embedding}
-                for chunk, embedding in zip(chunks, chunk_embeddings)
-            ]
+            "document_embedding": document_embedding,
+            "chunks": chunks
         }
-        
+
         collection.insert_one(document_to_insert)
-        logger.info("Document inserted into database successfully")
 
         return {"message": "Document uploaded and indexed successfully"}
     except RateLimitError as e:
-        logger.error(f"Rate limit error during document upload: {str(e)}")
         return {"error": f"Rate limit exceeded: {str(e)}"}
     except Exception as e:
-        logger.error(f"Error during document upload: {str(e)}")
         return {"error": f"Internal server error: {str(e)}"}
-
 
 
 @app.get("/user_documents/")
@@ -249,13 +236,18 @@ async def update_document(
             update_data["thumbnailUrl"] = Binary(thumbnail)
 
             pdf_reader = PdfReader(io.BytesIO(file_content))
-            pdf_text = extract_text_from_pdf(pdf_reader, max_pages=5)
+            pdf_text = extract_text_from_pdf(pdf_reader)
             update_data["text_content"] = pdf_text
 
-            embedding = embeddings.embed_query(pdf_text)
-            update_data["embedding"] = embedding
+            document_embedding = embeddings.embed_query(pdf_text)
+            update_data["document_embedding"] = document_embedding
 
-        result = collection.update_one(
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000, chunk_overlap=150)
+            chunks = text_splitter.split_text(pdf_text)
+            update_data["chunks"] = chunks
+
+        collection.update_one(
             {"_id": ObjectId(document_id), "user_email": user_info["email"]},
             {"$set": update_data}
         )
@@ -267,8 +259,8 @@ async def update_document(
 
 @app.delete("/delete_document/{document_id}")
 async def delete_document(document_id: str, user_info: dict = Depends(get_user_info)):
-    result = collection.delete_one(
-        {"_id": ObjectId(document_id), "user_email": user_info["email"]})
+    collection.delete_one({"_id": ObjectId(document_id),
+                          "user_email": user_info["email"]})
 
     return {"message": "Document deleted successfully"}
 
@@ -291,68 +283,106 @@ async def download_document(document_id: str, user_info: dict = Depends(get_user
 
 
 @app.post("/chat_with_pdf/{pdf_id}")
-async def chat_with_pdf(pdf_id: str, chat_request: ChatRequest, user_info: dict = Depends(get_user_info)):
-    try:
-        pdf = collection.find_one({"_id": ObjectId(pdf_id), "user_email": user_info["email"]})
-        if not pdf:
-            raise HTTPException(status_code=404, detail="PDF not found")
+async def chat_with_pdf(chat_request: ChatRequest):
 
-        user_message = next((msg.content for msg in reversed(chat_request.messages) if msg.role == "user"), None)
-        if not user_message:
-            raise HTTPException(status_code=400, detail="No user message found")
+    user_message = next((msg.content for msg in reversed(
+        chat_request.messages) if msg.role == "user"), None)
 
-        retriever = vector_store.as_retriever(search_kwargs={"k": 3})
-        llm = ChatOpenAI(model_name="gpt-3.5-turbo", streaming=True)
+    user_embedding = embeddings.embed_query(user_message)
 
-        qa_chain = RetrievalQA.from_chain_type(
-            llm,
-            retriever=retriever,
-            chain_type_kwargs={
-                "prompt": PromptTemplate(
-                    template="""
-                    Use the following pieces of context to answer the question at the end. 
-                    If you don't know the answer, just say that you don't know, don't try to make up an answer.
-
-                    {context}
-
-                    Question: {question}
-                    Answer:""",
-                    input_variables=["context", "question"]
-                )
+    search_query = [
+        {
+            "$vectorSearch": {
+                "index": "alexandria_vector_index",
+                "path": "document_embedding",
+                "queryVector": user_embedding,
+                "numCandidates": 100,
+                "limit": 5
             }
+        },
+        {
+            "$project": {
+                "score": {"$meta": "vectorSearchScore"},
+                "text_content": 1,
+                "title": 1,
+                "authors": 1,
+                "description": 1
+            }
+        }
+    ]
+
+    search_results = list(collection.aggregate(search_query))
+
+    most_relevant_doc = search_results[0]
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000, chunk_overlap=150)
+    chunks = text_splitter.split_text(most_relevant_doc['text_content'])
+    context = "\n".join(chunks[:5])
+
+    pdf_info = f"Title: {most_relevant_doc['title']}\nAuthors: {', '.join(
+        most_relevant_doc['authors'])}\nDescription: {most_relevant_doc['description']}"
+
+    async def event_generator():
+        yield f"data: {json.dumps({'type': 'context', 'content': context})}\n\n"
+
+        messages = [
+            {"role": "system", "content": f"You are a helpful assistant. Use the provided context to answer the user's question about the following PDF:\n\n{pdf_info}"},
+            {"role": "user", "content": f"Context: {
+                context}\n\nQuestion: {user_message}"}
+        ]
+
+        stream = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            stream=True
         )
 
-        async def event_generator():
-            try:
-                response = await qa_chain.ainvoke({"query": user_message})
-                yield f"data: {response['result']}\n\n"
-            except Exception as e:
-                yield f"data: Error: {str(e)}\n\n"
-            yield "data: [DONE]\n\n"
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                yield f"data: {json.dumps({'type': 'answer', 'content': chunk.choices[0].delta.content})}\n\n"
 
-        return StreamingResponse(event_generator(), media_type="text/event-stream")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.post("/search_documents/")
 async def search_documents(search_query: SearchQuery, user_info: dict = Depends(get_user_info)):
     try:
-        results = vector_store.similarity_search_with_score(
-            search_query.query, k=search_query.top_k)
+        query_embedding = embeddings.embed_query(search_query.query)
+
+        vector_search_query = [
+            {
+                "$vectorSearch": {
+                    "index": "alexandria_vector_index",
+                    "path": "document_embedding",
+                    "queryVector": query_embedding,
+                    "numCandidates": 100,
+                    "limit": search_query.top_k
+                }},
+            {
+                "$project": {
+                    "score": {"$meta": "vectorSearchScore"},
+                    "title": 1,
+                    "description": 1,
+                    "_id": 1
+                }
+            }
+        ]
+
+        results = list(collection.aggregate(vector_search_query))
 
         return [
             {
-                "_id": str(doc.metadata.get("_id")),
-                "title": doc.metadata.get("title"),
-                "description": doc.metadata.get("description"),
-                "similarity_score": score
-            } for doc, score in results
+                "_id": str(doc["_id"]),
+                "title": doc["title"],
+                "description": doc.get("description"),
+                "similarity_score": doc["score"]
+            } for doc in results
         ]
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Internal server error: {str(e)}")
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
