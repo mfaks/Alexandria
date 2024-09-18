@@ -1,1 +1,40 @@
-<p>chat works!</p>
+<div class="flex h-screen">
+    <div class="w-1/2 p-4 flex flex-col">
+        <div class="flex-grow overflow-auto">
+            <pdf-viewer [src]="pdfSrc"
+                        [render-text]="true"
+                        [original-size]="false"
+                        [show-all]="true"
+                        [fit-to-page]="true"
+                        [zoom]="1"
+                        [zoom-scale]="'page-fit'"
+                        [stick-to-page]="false"
+                        [autoresize]="true"
+                        [show-borders]="false"
+                        style="width: 100%; height: 100%;"
+                        (error)="onError($event)">
+            </pdf-viewer>
+        </div>
+    </div>
+    <div class="w-1/2 p-4 flex flex-col">
+        <div class="flex-grow overflow-y-auto mb-4">
+            @for (message of chatMessages; track message) {
+            <div class="mb-4" [class.text-right]="message.role === 'user'">
+                <span class="inline-block p-2 rounded" 
+                      [class.bg-blue-200]="message.role === 'user'"
+                      [class.bg-gray-200]="message.role === 'assistant'"
+                      [class.bg-red-200]="message.role === 'system'">
+                    {{ message.content }}
+                </span>
+            </div>
+            }
+        </div>
+        <div class="flex">
+            <input type="text" [(ngModel)]="newMessage" (keyup.enter)="sendMessage()"
+                class="flex-grow input input-bordered mr-2" placeholder="Type your message...">
+            <button (click)="sendMessage()" class="btn btn-primary" [disabled]="isLoading">
+                {{ isLoading ? 'Sending...' : 'Send' }}
+            </button>
+        </div>
+    </div>
+</div>

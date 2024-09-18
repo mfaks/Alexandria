@@ -11,7 +11,7 @@ export const routes: Routes = [
   { path: 'home', component: HomeComponent },
   { path: 'my-uploads', component: MyUploadsComponent, canActivate: [authGuard] },
   { path: 'library', component: LibraryComponent, canActivate: [authGuard] },
-  { path: 'chat', component: ChatComponent, canActivate: [authGuard] },
+  { path: 'chat/:id', component: ChatComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '/home' },
 ];
 
