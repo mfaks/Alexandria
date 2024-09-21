@@ -1,27 +1,47 @@
 <div class="h-screen overflow-y-auto bg-gray-200">
     <div class="bg-gray-50 p-6 rounded-lg shadow-lg h-full">
-        <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2 text-center">🗂️ Filters 🗂️</h3>        
+        <h3 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2 text-center">🗂️ Filters 🗂️</h3>
         <div class="mb-6">
-            <label for="search" class="block text-lg font-semibold text-gray-700 mb-2">Search</label>
-            <input type="text" id="search" [(ngModel)]="filters.titleSearch" (ngModelChange)="onFilterChange()"
+            <label for="documentSearch" class="block text-lg font-semibold text-gray-700 mb-2">Search Documents</label>
+            <input type="text" id="documentSearch" [(ngModel)]="filters.documentSearch" (ngModelChange)="onFilterChange()"
                 class="input input-bordered w-full rounded-lg text-lg p-3" placeholder="Search documents...">
         </div>
         <div class="mb-6">
-            <label class="text-lg font-semibold text-gray-700 mb-3">Authors</label>
+            <label for="authorSearch" class="block text-lg font-semibold text-gray-700 mb-2">Search Authors</label>
+            <input type="text" id="authorSearch" [(ngModel)]="filters.authorSearch"
+                (keyup.enter)="onAuthorEnter($event)"
+                class="input input-bordered w-full rounded-lg text-lg p-3" placeholder="Search authors..."
+                list="authorList">
+            <datalist id="authorList">
+                <option *ngFor="let author of availableAuthors" [value]="author"></option>
+            </datalist>
+        </div>
+        <div class="mb-6">
+            <label class="text-lg font-semibold text-gray-700 mb-3">Selected Authors</label>
             <div class="space-y-2">
-                <div *ngFor="let author of uniqueAuthors" class="flex items-center">
-                    <input type="checkbox" [id]="'author-' + author" [(ngModel)]="filters.authors[author]"
-                        (ngModelChange)="onFilterChange()" class="checkbox checkbox-primary mr-3 rounded">
+                <div *ngFor="let author of selectedAuthors" class="flex items-center">
+                    <input type="checkbox" [id]="'author-' + author" [checked]="true"
+                        (change)="toggleAuthor(author)" class="checkbox checkbox-primary mr-3 rounded">
                     <label [for]="'author-' + author" class="text-base cursor-pointer">{{ author }}</label>
                 </div>
             </div>
         </div>
         <div class="mb-6">
-            <label class="text-lg font-semibold text-gray-700 mb-3">Categories</label>
+            <label for="categorySearch" class="block text-lg font-semibold text-gray-700 mb-2">Search Categories</label>
+            <input type="text" id="categorySearch" [(ngModel)]="filters.categorySearch"
+                (keyup.enter)="onCategoryEnter($event)"
+                class="input input-bordered w-full rounded-lg text-lg p-3" placeholder="Search categories..."
+                list="categoryList">
+            <datalist id="categoryList">
+                <option *ngFor="let category of availableCategories" [value]="category"></option>
+            </datalist>
+        </div>
+        <div class="mb-6">
+            <label class="text-lg font-semibold text-gray-700 mb-3">Selected Categories</label>
             <div class="space-y-2">
-                <div *ngFor="let category of uniqueCategories" class="flex items-center">
-                    <input type="checkbox" [id]="'category-' + category" [(ngModel)]="filters.categories[category]"
-                        (ngModelChange)="onFilterChange()" class="checkbox checkbox-primary mr-3 rounded">
+                <div *ngFor="let category of selectedCategories" class="flex items-center">
+                    <input type="checkbox" [id]="'category-' + category" [checked]="true"
+                        (change)="toggleCategory(category)" class="checkbox checkbox-primary mr-3 rounded">
                     <label [for]="'category-' + category" class="text-base cursor-pointer">{{ category }}</label>
                 </div>
             </div>
