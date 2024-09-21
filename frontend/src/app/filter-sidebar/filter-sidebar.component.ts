@@ -1,14 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
-interface FilteredDocument {
-  title: string;
-  authors: string[];
-  categories: string[];
-  isPublic: boolean;
-  uploadedBy: string;
-}
+import { FilteredDocument } from '../interfaces/filter-document.interface';
 
 @Component({
   selector: 'app-filter-sidebar',
