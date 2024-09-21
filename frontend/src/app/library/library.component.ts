@@ -6,26 +6,14 @@ import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { SearchService } from '../search.service';
 import { FormsModule } from '@angular/forms';
-
-interface Document {
-  _id: string;
-  title: string;
-  authors: string[];
-  description?: string;
-  categories: string[];
-  fileName: string;
-  thumbnailUrl: string;
-  lastUpdated: string;
-  isPublic: boolean;
-  user_email: string;
-  similarity_score?: number;
-}
+import { Document } from '../shared/interface/document.interface';
 
 @Component({
   selector: 'app-library',
   standalone: true,
   imports: [CommonModule, FilterSidebarComponent, FormsModule],
-  templateUrl: './library.component.html'
+  templateUrl: './library.component.html',
+  styleUrls: ['./library.component.css']
 })
 export class LibraryComponent implements OnInit {
   documents: Document[] = [];
@@ -34,16 +22,19 @@ export class LibraryComponent implements OnInit {
   semanticSearchQuery: string = '';
   isLibraryRoute: boolean = false;
 
+  showPopup: boolean = false;
+  selectedDocument: Document | null = null;
+
   constructor(
-    private http: HttpClient, 
+    private http: HttpClient,
     private router: Router,
     private route: ActivatedRoute,
     private searchService: SearchService
   ) {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: NavigationEnd) => {
-      this.isLibraryRoute = event.url === '/library';
+    ).subscribe((event: any) => {
+      this.isLibraryRoute = event.url.includes('/library');
     });
   }
 
@@ -77,7 +68,8 @@ export class LibraryComponent implements OnInit {
         (documents) => {
           this.documents = documents.map(doc => ({
             ...doc,
-            thumbnailUrl: `http://localhost:8000/thumbnail/${doc._id}`
+            thumbnailUrl: `http://localhost:8000/thumbnail/${doc._id}`,
+            uploadedBy: doc.uploadedBy || doc.user_email
           }));
           this.filteredDocuments = this.documents;
         },
@@ -90,8 +82,16 @@ export class LibraryComponent implements OnInit {
   performSemanticSearch() {
     if (this.semanticSearchQuery) {
       this.searchService.searchDocuments(this.semanticSearchQuery).subscribe(
-        (results: Document[]) => {
-          this.documents = results;
+        (results: any[]) => {
+          this.documents = results.map(doc => ({
+            ...doc,
+            uploadedBy: doc.uploadedBy || doc.user_email || 'Unknown',
+            thumbnailUrl: `http://localhost:8000/thumbnail/${doc._id}`
+          }));
+          this.documents = this.documents.filter(doc =>
+            this.isLibraryRoute ?
+              (doc.isPublic || doc.user_email === this.currentUserEmail) : doc.isPublic
+          );
           this.filteredDocuments = this.documents;
         },
         (error) => {
@@ -104,29 +104,33 @@ export class LibraryComponent implements OnInit {
   }
 
   applyFilters(filters: any) {
+    console.log('Received filters:', filters);
+
     this.filteredDocuments = this.documents.filter(doc => {
-      const titleMatch = !filters.titleSearch || 
-        doc.title.toLowerCase().includes(filters.titleSearch.toLowerCase());
+      const titleMatch = !filters.documentSearch || 
+        doc.title.toLowerCase().includes(filters.documentSearch.toLowerCase());
 
-      const authorMatch = Object.keys(filters.authors).length === 0 ||
-        doc.authors.some(author => filters.authors[author]);
+      const authorMatch = !filters.authors || filters.authors.length === 0 ||
+        doc.authors.some(author => filters.authors.includes(author));
 
-      const categoryMatch = Object.keys(filters.categories).length === 0 ||
-        doc.categories.some(category => filters.categories[category]);
+      const categoryMatch = !filters.categories || filters.categories.length === 0 ||
+        doc.categories.some(category => filters.categories.includes(category));
 
-      let uploadedByMatch = true;
-      if (this.isLibraryRoute && filters.uploadedBy) {
-        uploadedByMatch = filters.uploadedBy === 'all' ||
-          (filters.uploadedBy === 'me' && doc.user_email === this.currentUserEmail) ||
-          (filters.uploadedBy === 'others' && doc.user_email !== this.currentUserEmail);
-      }
+      const visibilityMatch = filters.visibility === 'all' ||
+        (filters.visibility === 'public' && doc.isPublic) ||
+        (filters.visibility === 'private' && !doc.isPublic);
 
-      return titleMatch && authorMatch && categoryMatch && uploadedByMatch;
+      const uploadedByMatch = filters.uploadedBy === 'all' ||
+        (filters.uploadedBy === 'me' && doc.uploadedBy === this.currentUserEmail) ||
+        (filters.uploadedBy === 'others' && doc.uploadedBy !== this.currentUserEmail);
+
+      return titleMatch && authorMatch && categoryMatch && visibilityMatch && uploadedByMatch;
     });
 
     this.filteredDocuments.sort((a, b) => (b.similarity_score || 0) - (a.similarity_score || 0));
+    
+    console.log('Filtered documents:', this.filteredDocuments);
   }
-
 
   downloadDocument(document: Document): void {
     if (document._id) {
@@ -169,5 +173,15 @@ export class LibraryComponent implements OnInit {
 
   navigateToMyUploads(): void {
     this.router.navigate(['/my-uploads']);
+  }
+
+  showDescription(document: Document): void {
+    this.selectedDocument = document;
+    this.showPopup = true;
+  }
+
+  closePopup(): void {
+    this.showPopup = false;
+    this.selectedDocument = null;
   }
 }

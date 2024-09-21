@@ -1,28 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
 import { Router } from '@angular/router';
-
-interface Document {
-  _id?: string;
-  title: string;
-  authors: string[];
-  description?: string;
-  categories: string[];
-  fileName: string;
-  thumbnailUrl: string;
-  lastUpdated: string;
-  isPublic: boolean;
-  fileUrl?: string;
-}
+import { Document } from '../shared/interface/document.interface';
 
 @Component({
   selector: 'app-my-uploads',
   standalone: true,
   imports: [CommonModule, FormsModule, FilterSidebarComponent],
-  templateUrl: './my-uploads.component.html'
+  templateUrl: './my-uploads.component.html',
+  styleUrls: ['./my-uploads.component.css']
 })
 export class MyUploadsComponent implements OnInit {
   documents: Document[] = [];
@@ -33,8 +22,13 @@ export class MyUploadsComponent implements OnInit {
   newAuthor = '';
   isEditing = false;
   selectedFile: File | null = null;
-
   preloadedFileName: string | null = null;
+
+  showPopup = false;
+  selectedDocument: Document | null = null;
+
+  @ViewChild('uploadForm') uploadForm!: NgForm;
+  formSubmitted = false;
 
   constructor(private http: HttpClient, private router: Router) { }
 
@@ -44,6 +38,7 @@ export class MyUploadsComponent implements OnInit {
 
   getEmptyDocument(): Document {
     return {
+      _id: '',
       title: '',
       authors: [],
       description: '',
@@ -51,7 +46,10 @@ export class MyUploadsComponent implements OnInit {
       fileName: '',
       thumbnailUrl: '',
       lastUpdated: '',
-      isPublic: false
+      isPublic: false,
+      user_email: '',
+      similarity_score: 0,
+      uploadedBy: ''
     };
   }
 
@@ -70,14 +68,14 @@ export class MyUploadsComponent implements OnInit {
 
   applyFilters(filters: any) {
     this.filteredDocuments = this.documents.filter(doc => {
-      const titleMatch = !filters.titleSearch || 
-      doc.title.toLowerCase().includes(filters.titleSearch.toLowerCase());
+      const titleMatch = !filters.documentSearch || 
+        doc.title.toLowerCase().includes(filters.documentSearch.toLowerCase());
 
-      const authorMatch = Object.keys(filters.authors).length === 0 ||
-        doc.authors.some(author => filters.authors[author]);
+      const authorMatch = !filters.authors || filters.authors.length === 0 ||
+        doc.authors.some(author => filters.authors.includes(author));
 
-      const categoryMatch = Object.keys(filters.categories).length === 0 ||
-        doc.categories.some(category => filters.categories[category]);
+      const categoryMatch = !filters.categories || filters.categories.length === 0 ||
+        doc.categories.some(category => filters.categories.includes(category));
 
       const visibilityMatch = filters.visibility === 'all' ||
         (filters.visibility === 'public' && doc.isPublic) ||
@@ -92,9 +90,21 @@ export class MyUploadsComponent implements OnInit {
     if (file && file.type === 'application/pdf') {
       this.selectedFile = file;
       this.newDocument.fileName = file.name;
-      this.preloadedFileName = null
+      this.preloadedFileName = null;
     } else {
       alert('Please select a PDF file.');
+    }
+  }
+
+  validateAndSubmit(): void {
+    this.formSubmitted = true;
+
+    if (this.uploadForm.form.valid && 
+        this.newDocument.authors.length > 0 && 
+        (this.isEditing || this.selectedFile)) {
+      this.submitDocument();
+    } else {
+      console.error('Form is invalid. Please check all required fields.');
     }
   }
 
@@ -143,6 +153,7 @@ export class MyUploadsComponent implements OnInit {
         );
     }
   }
+
   resetForm(): void {
     this.newDocument = this.getEmptyDocument();
     this.selectedFile = null;
@@ -151,6 +162,7 @@ export class MyUploadsComponent implements OnInit {
     this.isEditing = false;
     this.newCategory = '';
     this.newAuthor = '';
+    this.formSubmitted = false;
   }
 
   downloadDocument(document: Document): void {
@@ -216,23 +228,12 @@ export class MyUploadsComponent implements OnInit {
 
   addCategory(): void {
     if (this.newCategory.trim()) {
-      const categories = this.newCategory.split(/[,\s]+/).map(cat => cat.trim()).filter(cat => cat);
-      categories.forEach(category => {
-        if (!this.newDocument.categories.includes(category)) {
-          this.newDocument.categories.push(category);
-        }
-      });
+      if (!this.newDocument.categories.includes(this.newCategory.trim())) {
+        this.newDocument.categories.push(this.newCategory.trim());
+      }
       this.newCategory = '';
     }
   }
-
-  onCategoryInput(event: KeyboardEvent): void {
-    if (event.key === ',' || event.key === ' ' || event.key === 'Enter') {
-      event.preventDefault();
-      this.addCategory();
-    }
-  }
-
 
   removeCategory(category: string): void {
     this.newDocument.categories = this.newDocument.categories.filter(c => c !== category);
@@ -240,20 +241,10 @@ export class MyUploadsComponent implements OnInit {
 
   addAuthor(): void {
     if (this.newAuthor.trim()) {
-      const authors = this.newAuthor.split(/[,\s]+/).map(author => author.trim()).filter(author => author);
-      authors.forEach(author => {
-        if (!this.newDocument.authors.includes(author)) {
-          this.newDocument.authors.push(author);
-        }
-      });
+      if (!this.newDocument.authors.includes(this.newAuthor.trim())) {
+        this.newDocument.authors.push(this.newAuthor.trim());
+      }
       this.newAuthor = '';
-    }
-  }
-
-  onAuthorInput(event: KeyboardEvent): void {
-    if (event.key === ',' || event.key === ' ' || event.key === 'Enter') {
-      event.preventDefault();
-      this.addAuthor();
     }
   }
 
@@ -264,7 +255,6 @@ export class MyUploadsComponent implements OnInit {
   clearImage(): void {
     this.newDocument.thumbnailUrl = '';
     this.newDocument.fileName = '';
-    this.newDocument.fileUrl = '';
     this.selectedFile = null;
     const fileInput = document.getElementById('file') as HTMLInputElement;
     if (fileInput) {
@@ -274,5 +264,15 @@ export class MyUploadsComponent implements OnInit {
 
   scrollToTop(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  showDescription(document: Document): void {
+    this.selectedDocument = document;
+    this.showPopup = true;
+  }
+
+  closePopup(): void {
+    this.showPopup = false;
+    this.selectedDocument = null;
   }
 }
