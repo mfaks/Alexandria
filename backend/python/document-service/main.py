@@ -38,7 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 ATLAS_CONNECTION_STRING = os.getenv("ATLAS_CONNECTION_STRING")
 mongo_client = MongoClient(ATLAS_CONNECTION_STRING, tlsCAFile=certifi.where())
@@ -55,7 +55,6 @@ embeddings = OpenAIEmbeddings()
 vector_store = MongoDBAtlasVectorSearch(
     collection, embeddings, index_name="alexandria_vector_index")
 
-
 class Document(BaseModel):
     title: str
     authors: List[str]
@@ -63,23 +62,11 @@ class Document(BaseModel):
     categories: List[str]
     isPublic: bool
 
-
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-
-class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
-
-
 class SearchQuery(BaseModel):
     query: str
     top_k: int = 5
 
-
 llm = OpenAI()
-
 
 @app.get("/user_info/")
 async def get_user_info(gothic_session: Optional[str] = Cookie(None)):
@@ -95,17 +82,14 @@ async def get_user_info(gothic_session: Optional[str] = Cookie(None)):
         "email": user_info.get("email")
     }
 
-
 def extract_text_from_pdf(pdf_reader):
     pdf_text = ""
     for page in pdf_reader.pages:
         pdf_text += page.extract_text()
     return pdf_text
 
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 @app.post("/upload_document/")
 async def upload_document(
@@ -160,11 +144,11 @@ async def upload_document(
     except Exception as e:
         return {"error": f"Internal server error: {str(e)}"}
 
-
 @app.get("/user_documents/")
 async def get_user_documents(request: Request, user_info: dict = Depends(get_user_info)):
-    user_documents = collection.find({"user_email": user_info["email"]})
+    user_documents = list(collection.find({"user_email": user_info["email"]}))
     base_url = str(request.base_url)
+    
     return [{
         "_id": str(doc["_id"]),
         "title": doc.get("title"),
@@ -179,18 +163,17 @@ async def get_user_documents(request: Request, user_info: dict = Depends(get_use
         "user_email": doc.get("user_email"),
     } for doc in user_documents]
 
-
 @app.get("/thumbnail/{document_id}")
-async def get_thumbnail(document_id: str, user_info: dict = Depends(get_user_info)):
-    document = collection.find_one(
-        {"_id": ObjectId(document_id), "user_email": user_info["email"]}
-    )
-    return Response(content=document["thumbnailUrl"], media_type="image/png")
-
+async def get_thumbnail(document_id: str):
+    document = collection.find_one({"_id": ObjectId(document_id)})
+    if document and "thumbnailUrl" in document:
+        return Response(content=document["thumbnailUrl"], media_type="image/png")
+    else:
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
 
 @app.get("/public_documents/")
 async def get_public_documents(request: Request):
-    public_documents = collection.find({"isPublic": True})
+    public_documents = list(collection.find({"isPublic": True}))
     base_url = str(request.base_url)
     return [{
         "_id": str(doc["_id"]),
@@ -205,7 +188,6 @@ async def get_public_documents(request: Request):
         "thumbnailUrl": f"{base_url}thumbnail/{str(doc['_id'])}" if "thumbnailUrl" in doc else None,
         "user_email": doc.get("user_email"),
     } for doc in public_documents]
-
 
 @app.put("/update_document/{document_id}")
 async def update_document(
@@ -256,14 +238,12 @@ async def update_document(
     except Exception as e:
         return {"error": f"Internal server error: {str(e)}"}
 
-
 @app.delete("/delete_document/{document_id}")
 async def delete_document(document_id: str, user_info: dict = Depends(get_user_info)):
     collection.delete_one({"_id": ObjectId(document_id),
                           "user_email": user_info["email"]})
 
     return {"message": "Document deleted successfully"}
-
 
 @app.get("/download_document/{document_id}")
 async def download_document(document_id: str, user_info: dict = Depends(get_user_info)):
@@ -280,71 +260,6 @@ async def download_document(document_id: str, user_info: dict = Depends(get_user
             "Content-Disposition": f'attachment; filename="{document.get("fileName", "document.pdf")}"'
         }
     )
-
-
-@app.post("/chat_with_pdf/{pdf_id}")
-async def chat_with_pdf(chat_request: ChatRequest):
-
-    user_message = next((msg.content for msg in reversed(
-        chat_request.messages) if msg.role == "user"), None)
-
-    user_embedding = embeddings.embed_query(user_message)
-
-    search_query = [
-        {
-            "$vectorSearch": {
-                "index": "alexandria_vector_index",
-                "path": "document_embedding",
-                "queryVector": user_embedding,
-                "numCandidates": 100,
-                "limit": 5
-            }
-        },
-        {
-            "$project": {
-                "score": {"$meta": "vectorSearchScore"},
-                "text_content": 1,
-                "title": 1,
-                "authors": 1,
-                "description": 1
-            }
-        }
-    ]
-
-    search_results = list(collection.aggregate(search_query))
-
-    most_relevant_doc = search_results[0]
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000, chunk_overlap=150)
-    chunks = text_splitter.split_text(most_relevant_doc['text_content'])
-    context = "\n".join(chunks[:5])
-
-    pdf_info = f"Title: {most_relevant_doc['title']}\nAuthors: {', '.join(
-        most_relevant_doc['authors'])}\nDescription: {most_relevant_doc['description']}"
-
-    async def event_generator():
-        yield f"data: {json.dumps({'type': 'context', 'content': context})}\n\n"
-
-        messages = [
-            {"role": "system", "content": f"You are a helpful assistant. Use the provided context to answer the user's question about the following PDF:\n\n{pdf_info}"},
-            {"role": "user", "content": f"Context: {
-                context}\n\nQuestion: {user_message}"}
-        ]
-
-        stream = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            stream=True
-        )
-
-        for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                yield f"data: {json.dumps({'type': 'answer', 'content': chunk.choices[0].delta.content})}\n\n"
-
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
-
 
 @app.post("/search_documents/")
 async def search_documents(search_query: SearchQuery, request: Request, user_info: dict = Depends(get_user_info)):

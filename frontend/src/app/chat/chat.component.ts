@@ -51,7 +51,7 @@ export class ChatComponent implements OnInit {
       const userMessage: ChatMessage = { role: 'user', content: this.newMessage };
       this.chatMessages.push(userMessage);
       
-      const url = `http://localhost:8000/chat_with_pdf/${this.documentId}`;
+      const url = `http://localhost:8001/chat_with_pdf/${this.documentId}`;
       const body = { messages: this.chatMessages };
       
       let assistantMessage: ChatMessage = { role: 'assistant', content: '' };
