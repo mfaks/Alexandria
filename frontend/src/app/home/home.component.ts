@@ -17,15 +17,15 @@ export class HomeComponent {
   features = [
     {
       title: 'Explore the Library',
-      description: 'Dive into a comprehensive collection of research papers and academic resources, covering a wide range of disciplines and topics.'
+      description: 'Dive into a comprehensive collection of research papers and academic resources, covering a wide range of topics.'
     },
     {
-      title: 'Real-Time Q&A Support',
-      description: 'Get instant answers to your questions from our advanced AI system, enhancing your research process and understanding.'
+      title: 'Real-Time AI Support',
+      description: 'Get instant answers to your questions from our advanced AI system to enhance your understanding.'
     },
     {
-      title: 'Robust Data Privacy',
-      description: 'Choose to keep your uploaded research papers private or make them public. Rest assured, your data is never used for training or shared with third parties, maintaining the highest standards of privacy and integrity.'
+      title: 'Data Privacy Promise',
+      description: 'Rest assured, your data is never used for training or shared with third parties, maintaining the highest standards of privacy and integrity.'
     }
   ];
 
