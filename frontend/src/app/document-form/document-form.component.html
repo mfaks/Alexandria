@@ -1,0 +1,94 @@
+<div class="mb-8 bg-white p-6 rounded-lg shadow-md border border-gray-200">
+    <h2 class="text-2xl font-bold mb-6">{{ isEditing ? 'Edit Document' : 'Upload New Document' }}</h2>
+    <form (ngSubmit)="$event.preventDefault(); validateAndSubmit()" #documentForm="ngForm" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex flex-col">
+          <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+          <input type="text" id="title" name="title" [(ngModel)]="document.title"
+            #titleInput="ngModel" class="input input-bordered w-full h-10" required>
+          <small class="text-red-500"
+            *ngIf="titleInput.invalid && (titleInput.dirty || titleInput.touched || formSubmitted)">
+            Title is required.
+          </small>
+        </div>
+        <div class="flex flex-col">
+          <label for="authors" class="block text-sm font-medium text-gray-700 mb-1">Author(s) *</label>
+          <div class="flex gap-2">
+            <input type="text" [(ngModel)]="newAuthor" name="newAuthor"
+              class="input input-bordered flex-grow h-10"
+              placeholder="Add an author: 'First, Last'"
+              (keydown.enter)="$event.preventDefault(); addAuthor()">
+            <button type="button" (click)="addAuthor()"
+              class="btn btn-outline h-10 px-4 min-h-0">Add</button>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <span *ngFor="let author of document.authors"
+              class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+              {{ author }}
+              <button type="button" (click)="removeAuthor(author)"
+                class="ml-1 text-blue-600 hover:text-blue-800">&times;</button>
+            </span>
+          </div>
+          <small class="text-red-500" *ngIf="document.authors.length === 0 && formSubmitted">
+            At least one author is required.
+          </small>
+        </div>
+        <div class="md:col-span-2">
+          <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea id="description" name="description" [(ngModel)]="document.description" rows="3"
+            class="textarea textarea-bordered w-full"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label for="categories" class="block text-sm font-medium text-gray-700 mb-1">Category(-ies)</label>
+          <div class="flex gap-2">
+            <input type="text" [(ngModel)]="newCategory" name="newCategory"
+              class="input input-bordered flex-grow h-10" placeholder="Add a category"
+              (keydown.enter)="$event.preventDefault(); addCategory()">
+            <button type="button" (click)="addCategory()"
+              class="btn btn-outline h-10 px-4 min-h-0">Add</button>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <span *ngFor="let category of document.categories"
+              class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+              {{ category }}
+              <button type="button" (click)="removeCategory(category)"
+                class="ml-1 text-blue-600 hover:text-blue-800">&times;</button>
+            </span>
+          </div>
+        </div>
+        <div>
+          <label for="file" class="block text-sm font-medium text-gray-700 mb-1">PDF File {{ isEditing ? '' : '*' }}</label>
+          <div class="flex items-center gap-2">
+            <ng-container *ngIf="isEditing && preloadedFileName; else newFileInput">
+              <input type="text" [value]="preloadedFileName" readonly
+                class="input input-bordered w-full h-[40px] min-h-[40px] max-h-[40px] bg-gray-100 cursor-not-allowed">
+            </ng-container>
+            <ng-template #newFileInput>
+              <input type="file" id="file" (change)="onFileSelected($event)"
+                accept="application/pdf"
+                class="file-input file-input-bordered file-input-primary w-full h-[40px] min-h-[40px] max-h-[40px]"
+                [required]="!isEditing">
+            </ng-template>
+          </div>
+          <small class="text-red-500" *ngIf="!isEditing && !selectedFile && formSubmitted">
+            PDF file is required.
+          </small>
+          <p *ngIf="selectedFile" class="mt-2 text-sm text-gray-500">
+            Selected file: {{ selectedFile.name }}
+          </p>
+        </div>
+        <div>
+          <label for="visibility" class="block text-sm font-medium text-gray-700 mb-1">Visibility *</label>
+          <select id="visibility" name="visibility" [(ngModel)]="document.isPublic"
+            class="select select-bordered w-full h-[40px] min-h-[40px] max-h-[40px] py-0" required>
+            <option [ngValue]="true">Public</option>
+            <option [ngValue]="false">Private</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-3">
+        <button type="button" class="btn btn-outline" (click)="cancel()">❌ Cancel</button>
+        <button type="submit" class="btn btn-primary">{{ isEditing ? '💾 Save' : ' 📤 Upload' }}</button>
+      </div>
+    </form>
+  </div>

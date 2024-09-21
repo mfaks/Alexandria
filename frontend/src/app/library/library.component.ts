@@ -7,11 +7,12 @@ import { filter } from 'rxjs/operators';
 import { SearchService } from '../search.service';
 import { FormsModule } from '@angular/forms';
 import { Document } from '../interfaces/shared/document.interface';
+import { DocumentPopupComponent } from '../document-popup/document-popup.component';
 
 @Component({
   selector: 'app-library',
   standalone: true,
-  imports: [CommonModule, FilterSidebarComponent, FormsModule],
+  imports: [CommonModule, FilterSidebarComponent, FormsModule, DocumentPopupComponent],
   templateUrl: './library.component.html',
   styleUrls: ['./library.component.css']
 })

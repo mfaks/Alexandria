@@ -1,56 +1,33 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, NgForm } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
 import { Router } from '@angular/router';
 import { Document } from '../interfaces/shared/document.interface';
+import { DocumentPopupComponent } from "../document-popup/document-popup.component";
+import { DocumentFormComponent } from '../document-form/document-form.component';
 
 @Component({
   selector: 'app-my-uploads',
   standalone: true,
-  imports: [CommonModule, FormsModule, FilterSidebarComponent],
+  imports: [CommonModule, FilterSidebarComponent, DocumentPopupComponent, DocumentFormComponent],
   templateUrl: './my-uploads.component.html',
   styleUrls: ['./my-uploads.component.css']
 })
 export class MyUploadsComponent implements OnInit {
   documents: Document[] = [];
   filteredDocuments: Document[] = [];
-  newDocument: Document = this.getEmptyDocument();
   showUploadForm = false;
-  newCategory = '';
-  newAuthor = '';
   isEditing = false;
-  selectedFile: File | null = null;
-  preloadedFileName: string | null = null;
+  editingDocument: Document | null = null;
 
   showPopup = false;
   selectedDocument: Document | null = null;
-
-  @ViewChild('uploadForm') uploadForm!: NgForm;
-  formSubmitted = false;
 
   constructor(private http: HttpClient, private router: Router) { }
 
   ngOnInit() {
     this.loadDocuments();
-  }
-
-  getEmptyDocument(): Document {
-    return {
-      _id: '',
-      title: '',
-      authors: [],
-      description: '',
-      categories: [],
-      fileName: '',
-      thumbnailUrl: '',
-      lastUpdated: '',
-      isPublic: false,
-      user_email: '',
-      similarity_score: 0,
-      uploadedBy: ''
-    };
   }
 
   loadDocuments() {
@@ -85,52 +62,22 @@ export class MyUploadsComponent implements OnInit {
     });
   }
 
-  onFileSelected(event: any): void {
-    const file: File = event.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      this.selectedFile = file;
-      this.newDocument.fileName = file.name;
-      this.preloadedFileName = null;
-    } else {
-      alert('Please select a PDF file.');
-    }
-  }
+  submitDocument(formData: { document: Document, file: File | null }): void {
+    const { document, file } = formData;
+    const formDataToSend = new FormData();
 
-  validateAndSubmit(): void {
-    this.formSubmitted = true;
+    formDataToSend.append('document', JSON.stringify(document));
 
-    if (this.uploadForm.form.valid && 
-        this.newDocument.authors.length > 0 && 
-        (this.isEditing || this.selectedFile)) {
-      this.submitDocument();
-    } else {
-      console.error('Form is invalid. Please check all required fields.');
-    }
-  }
-
-  submitDocument(): void {
-    const formData = new FormData();
-
-    const documentData = {
-      title: this.newDocument.title,
-      authors: this.newDocument.authors,
-      description: this.newDocument.description,
-      categories: this.newDocument.categories,
-      isPublic: this.newDocument.isPublic
-    };
-
-    formData.append('document', JSON.stringify(documentData));
-
-    if (this.selectedFile) {
-      formData.append('file', this.selectedFile);
-    } else if (this.isEditing && this.preloadedFileName) {
-      formData.append('keepExistingFile', 'true');
+    if (file) {
+      formDataToSend.append('file', file);
+    } else if (this.isEditing) {
+      formDataToSend.append('keepExistingFile', 'true');
     }
 
     const headers = new HttpHeaders();
 
-    if (this.isEditing && this.newDocument._id) {
-      this.http.put(`http://localhost:8000/update_document/${this.newDocument._id}`, formData, { headers, withCredentials: true })
+    if (this.isEditing && document._id) {
+      this.http.put(`http://localhost:8000/update_document/${document._id}`, formDataToSend, { headers, withCredentials: true })
         .subscribe(
           () => {
             this.loadDocuments();
@@ -141,7 +88,7 @@ export class MyUploadsComponent implements OnInit {
           }
         );
     } else {
-      this.http.post('http://localhost:8000/upload_document', formData, { headers, withCredentials: true })
+      this.http.post('http://localhost:8000/upload_document', formDataToSend, { headers, withCredentials: true })
         .subscribe(
           () => {
             this.loadDocuments();
@@ -155,14 +102,9 @@ export class MyUploadsComponent implements OnInit {
   }
 
   resetForm(): void {
-    this.newDocument = this.getEmptyDocument();
-    this.selectedFile = null;
-    this.preloadedFileName = null;
     this.showUploadForm = false;
     this.isEditing = false;
-    this.newCategory = '';
-    this.newAuthor = '';
-    this.formSubmitted = false;
+    this.editingDocument = null;
   }
 
   downloadDocument(document: Document): void {
@@ -212,6 +154,8 @@ export class MyUploadsComponent implements OnInit {
 
   openFileUpload(): void {
     this.showUploadForm = true;
+    this.isEditing = false;
+    this.editingDocument = null;
   }
 
   chatAboutDocument(document: Document): void {
@@ -221,45 +165,8 @@ export class MyUploadsComponent implements OnInit {
   editDocument(document: Document): void {
     this.isEditing = true;
     this.showUploadForm = true;
-    this.newDocument = { ...document };
-    this.preloadedFileName = document.fileName;
+    this.editingDocument = { ...document };
     this.scrollToTop();
-  }
-
-  addCategory(): void {
-    if (this.newCategory.trim()) {
-      if (!this.newDocument.categories.includes(this.newCategory.trim())) {
-        this.newDocument.categories.push(this.newCategory.trim());
-      }
-      this.newCategory = '';
-    }
-  }
-
-  removeCategory(category: string): void {
-    this.newDocument.categories = this.newDocument.categories.filter(c => c !== category);
-  }
-
-  addAuthor(): void {
-    if (this.newAuthor.trim()) {
-      if (!this.newDocument.authors.includes(this.newAuthor.trim())) {
-        this.newDocument.authors.push(this.newAuthor.trim());
-      }
-      this.newAuthor = '';
-    }
-  }
-
-  removeAuthor(author: string): void {
-    this.newDocument.authors = this.newDocument.authors.filter(a => a !== author);
-  }
-
-  clearImage(): void {
-    this.newDocument.thumbnailUrl = '';
-    this.newDocument.fileName = '';
-    this.selectedFile = null;
-    const fileInput = document.getElementById('file') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
   }
 
   scrollToTop(): void {

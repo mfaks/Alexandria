@@ -1,0 +1,10 @@
+<div *ngIf="showPopup" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full">
+        <h3 class="text-2xl font-bold mb-4">{{ document?.title || document?.fileName }}</h3>
+        <p class="text-gray-600 mb-2"><strong>Author(s):</strong> {{ document?.authors?.join(', ') }}</p>
+        <div class="bg-gray-100 p-4 rounded-md mb-4">
+            <p class="text-gray-800">{{ document?.description || 'No description available.' }}</p>
+        </div>
+        <button (click)="closePopup()" class="btn btn-primary">Close</button>
+    </div>
+</div>
