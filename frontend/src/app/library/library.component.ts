@@ -6,7 +6,7 @@ import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { SearchService } from '../search.service';
 import { FormsModule } from '@angular/forms';
-import { Document } from '../shared/interface/document.interface';
+import { Document } from '../interfaces/shared/document.interface';
 
 @Component({
   selector: 'app-library',

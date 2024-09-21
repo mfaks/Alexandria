@@ -4,7 +4,7 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
 import { Router } from '@angular/router';
-import { Document } from '../shared/interface/document.interface';
+import { Document } from '../interfaces/shared/document.interface';
 
 @Component({
   selector: 'app-my-uploads',
