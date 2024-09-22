@@ -1,4 +1,6 @@
 python/venv
 python/__pycache__
+python/document-service/__pycache__
+python/chat-service/__pycache__
 python/.env
 go/.env

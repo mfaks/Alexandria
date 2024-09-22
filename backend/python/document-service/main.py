@@ -19,11 +19,8 @@ from datetime import datetime
 from bson.binary import Binary
 import fitz
 from openai import OpenAI
-import numpy as np
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
 from langchain_mongodb import MongoDBAtlasVectorSearch
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
 
 app = FastAPI()
 
