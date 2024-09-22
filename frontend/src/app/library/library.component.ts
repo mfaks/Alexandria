@@ -1,13 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
-import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import { ActivatedRoute, Router, NavigationEnd, NavigationStart, Event as RouterEvent } from '@angular/router';
+import { filter, takeUntil } from 'rxjs/operators';
 import { SearchService } from '../search.service';
 import { FormsModule } from '@angular/forms';
 import { Document } from '../interfaces/shared/document.interface';
 import { DocumentPopupComponent } from '../document-popup/document-popup.component';
+import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-library',
@@ -16,7 +17,7 @@ import { DocumentPopupComponent } from '../document-popup/document-popup.compone
   templateUrl: './library.component.html',
   styleUrls: ['./library.component.css']
 })
-export class LibraryComponent implements OnInit {
+export class LibraryComponent implements OnInit, OnDestroy {
   documents: Document[] = [];
   filteredDocuments: Document[] = [];
   currentUserEmail: string = '';
@@ -26,6 +27,8 @@ export class LibraryComponent implements OnInit {
   showPopup: boolean = false;
   selectedDocument: Document | null = null;
 
+  private unsubscribe$ = new Subject<void>();
+
   constructor(
     private http: HttpClient,
     private router: Router,
@@ -33,14 +36,26 @@ export class LibraryComponent implements OnInit {
     private searchService: SearchService
   ) {
     this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
+      filter(event => event instanceof NavigationEnd),
+      takeUntil(this.unsubscribe$)
     ).subscribe((event: any) => {
       this.isLibraryRoute = event.url.includes('/library');
+    });
+
+    this.router.events.pipe(
+      takeUntil(this.unsubscribe$)
+    ).subscribe((event: RouterEvent) => {
+      if (event instanceof NavigationStart && !event.url.includes('/library')) {
+        this.unsubscribe$.next();
+        this.unsubscribe$.complete();
+      }
     });
   }
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(
+      takeUntil(this.unsubscribe$)
+    ).subscribe(params => {
       if (params['search']) {
         this.semanticSearchQuery = params['search'];
         this.performSemanticSearch();
@@ -51,8 +66,14 @@ export class LibraryComponent implements OnInit {
     this.getCurrentUser();
   }
 
+  ngOnDestroy() {
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
+  }
+
   getCurrentUser() {
     this.http.get<{ email: string }>('http://localhost:8000/user_info', { withCredentials: true })
+      .pipe(takeUntil(this.unsubscribe$))
       .subscribe(
         (response) => {
           this.currentUserEmail = response.email;
@@ -65,6 +86,7 @@ export class LibraryComponent implements OnInit {
 
   loadPublicDocuments() {
     this.http.get<Document[]>('http://localhost:8000/public_documents', { withCredentials: true })
+      .pipe(takeUntil(this.unsubscribe$))
       .subscribe(
         (documents) => {
           this.documents = documents.map(doc => ({
@@ -82,31 +104,31 @@ export class LibraryComponent implements OnInit {
 
   performSemanticSearch() {
     if (this.semanticSearchQuery) {
-      this.searchService.searchDocuments(this.semanticSearchQuery).subscribe(
-        (results: any[]) => {
-          this.documents = results.map(doc => ({
-            ...doc,
-            uploadedBy: doc.uploadedBy || doc.user_email || 'Unknown',
-            thumbnailUrl: `http://localhost:8000/thumbnail/${doc._id}`
-          }));
-          this.documents = this.documents.filter(doc =>
-            this.isLibraryRoute ?
-              (doc.isPublic || doc.user_email === this.currentUserEmail) : doc.isPublic
-          );
-          this.filteredDocuments = this.documents;
-        },
-        (error) => {
-          console.error('Error searching documents:', error);
-        }
-      );
+      this.searchService.searchDocuments(this.semanticSearchQuery)
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(
+          (results: any[]) => {
+            this.documents = results.map(doc => ({
+              ...doc,
+              uploadedBy: doc.uploadedBy || doc.user_email || 'Unknown',
+              thumbnailUrl: `http://localhost:8000/thumbnail/${doc._id}`
+            }));
+            this.documents = this.documents.filter(doc =>
+              this.isLibraryRoute ?
+                (doc.isPublic || doc.user_email === this.currentUserEmail) : doc.isPublic
+            );
+            this.filteredDocuments = this.documents;
+          },
+          (error) => {
+            console.error('Error searching documents:', error);
+          }
+        );
     } else {
       this.loadPublicDocuments();
     }
   }
 
   applyFilters(filters: any) {
-    console.log('Received filters:', filters);
-
     this.filteredDocuments = this.documents.filter(doc => {
       const titleMatch = !filters.documentSearch || 
         doc.title.toLowerCase().includes(filters.documentSearch.toLowerCase());
@@ -129,8 +151,6 @@ export class LibraryComponent implements OnInit {
     });
 
     this.filteredDocuments.sort((a, b) => (b.similarity_score || 0) - (a.similarity_score || 0));
-    
-    console.log('Filtered documents:', this.filteredDocuments);
   }
 
   downloadDocument(document: Document): void {
@@ -138,7 +158,9 @@ export class LibraryComponent implements OnInit {
       this.http.get(`http://localhost:8000/download_document/${document._id}`, {
         responseType: 'blob',
         withCredentials: true
-      }).subscribe(
+      })
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(
         (blob: Blob) => {
           const url = window.URL.createObjectURL(blob);
 

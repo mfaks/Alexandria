@@ -1,11 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
-import { Router } from '@angular/router';
+import { Router, NavigationStart, Event as RouterEvent } from '@angular/router';
 import { Document } from '../interfaces/shared/document.interface';
 import { DocumentPopupComponent } from "../document-popup/document-popup.component";
 import { DocumentFormComponent } from '../document-form/document-form.component';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-my-uploads',
@@ -14,7 +15,7 @@ import { DocumentFormComponent } from '../document-form/document-form.component'
   templateUrl: './my-uploads.component.html',
   styleUrls: ['./my-uploads.component.css']
 })
-export class MyUploadsComponent implements OnInit {
+export class MyUploadsComponent implements OnInit, OnDestroy {
   documents: Document[] = [];
   filteredDocuments: Document[] = [];
   showUploadForm = false;
@@ -24,14 +25,31 @@ export class MyUploadsComponent implements OnInit {
   showPopup = false;
   selectedDocument: Document | null = null;
 
+  private unsubscribe$ = new Subject<void>();
+
   constructor(private http: HttpClient, private router: Router) { }
 
   ngOnInit() {
     this.loadDocuments();
+
+    this.router.events
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe((event: RouterEvent) => {
+        if (event instanceof NavigationStart && !event.url.includes('/my-uploads')) {
+          this.unsubscribe$.next();
+          this.unsubscribe$.complete();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 
   loadDocuments() {
     this.http.get<Document[]>('http://localhost:8000/user_documents', { withCredentials: true })
+      .pipe(takeUntil(this.unsubscribe$))
       .subscribe(
         (documents) => {
           this.documents = documents;
@@ -78,6 +96,7 @@ export class MyUploadsComponent implements OnInit {
 
     if (this.isEditing && document._id) {
       this.http.put(`http://localhost:8000/update_document/${document._id}`, formDataToSend, { headers, withCredentials: true })
+        .pipe(takeUntil(this.unsubscribe$))
         .subscribe(
           () => {
             this.loadDocuments();
@@ -89,6 +108,7 @@ export class MyUploadsComponent implements OnInit {
         );
     } else {
       this.http.post('http://localhost:8000/upload_document', formDataToSend, { headers, withCredentials: true })
+        .pipe(takeUntil(this.unsubscribe$))
         .subscribe(
           () => {
             this.loadDocuments();
@@ -112,7 +132,9 @@ export class MyUploadsComponent implements OnInit {
       this.http.get(`http://localhost:8000/download_document/${document._id}`, {
         responseType: 'blob',
         withCredentials: true
-      }).subscribe(
+      })
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe(
         (blob: Blob) => {
           const url = window.URL.createObjectURL(blob);
 
@@ -141,6 +163,7 @@ export class MyUploadsComponent implements OnInit {
   deleteDocument(document: Document): void {
     if (confirm(`Are you sure you want to delete "${document.title || document.fileName}"?`)) {
       this.http.delete(`http://localhost:8000/delete_document/${document._id}`, { withCredentials: true })
+        .pipe(takeUntil(this.unsubscribe$))
         .subscribe(
           () => {
             this.loadDocuments();
