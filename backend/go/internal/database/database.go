@@ -21,6 +21,23 @@ func InitDB(cfg config.DatabaseConfig) (*sql.DB, error) {
 		return nil, fmt.Errorf("error connecting to database: %w", err)
 	}
 
+	createTableQuery := `
+	CREATE TABLE IF NOT EXISTS users (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		name VARCHAR(255) NOT NULL,
+		email VARCHAR(255) NOT NULL UNIQUE,
+		nickname VARCHAR(255),
+		avatar_url VARCHAR(255),
+		user_id VARCHAR(255) NOT NULL UNIQUE,
+		provider VARCHAR(50),
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	) ENGINE=INNODB;`
+
+	_, err = db.Exec(createTableQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error creating 'users' table: %w", err)
+	}
+
 	return db, nil
 }
 

@@ -16,13 +16,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],
+    allow_origins=["http://localhost:80", "http://localhost"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 ATLAS_CONNECTION_STRING = os.getenv("ATLAS_CONNECTION_STRING")
 mongo_client = MongoClient(ATLAS_CONNECTION_STRING, tlsCAFile=certifi.where())

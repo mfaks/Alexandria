@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -31,10 +29,6 @@ type ProviderConfig struct {
 }
 
 func Load() (*Config, error) {
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		return nil, fmt.Errorf("error loading .env file: %w", err)
-	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -61,6 +55,6 @@ func Load() (*Config, error) {
 			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 			CallbackURL:  fmt.Sprintf("http://localhost:%s/auth/google/callback", port),
 		},
-		AllowedOrigins: []string{"http://localhost:4200"},
+		AllowedOrigins: []string{"http://localhost:80", "http://localhost"},
 	}, nil
 }

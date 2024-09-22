@@ -1,0 +1,6 @@
+backend/python/venv
+backend/python/__pycache__
+backend/python/document-service/__pycache__
+backend/python/chat-service/__pycache__
+backend/python/.env
+.env
