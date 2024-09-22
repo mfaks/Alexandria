@@ -12,6 +12,7 @@ Alexandria is an AI-powered research companion designed to revolutionize how you
 - **Intelligent Document Interaction**: Upload your papers and engage in conversations with them using our advanced AI system.
 - **Vast Research Library**: Explore a comprehensive collection of research papers and academic resources covering a wide range of topics.
 - **Real-Time AI Support**: Get instant answers to your questions to enhance your understanding of complex subjects.
+- **Semantic Search**: Utilize MongoDB Atlas vector search for advanced semantic search capabilities, allowing for more accurate and context-aware document retrieval.
 - **Data Privacy Promise**: Your data is never used for training or shared with third parties, ensuring the highest standards of privacy and integrity.
 
 <p align="center">
@@ -82,11 +83,24 @@ Alexandria is an AI-powered research companion designed to revolutionize how you
     MYSQL_PORT=[Your MySQL port, default is 3306]
     MYSQL_DATABASE=[Your MySQL database name]
    ```
-4. Start the Docker containers:
+4. Create a MongoDB Atlas vector search index with the following configuration:
+```
+{
+  "fields": [
+    {
+      "numDimensions": 1536,
+      "path": "document_embedding",
+      "similarity": "dotProduct",
+      "type": "vector"
+    }
+  ]
+}
+```  
+5. Start the Docker containers:
    ```bash
    docker-compose up -d
    ```
-5. Open your browser and navigate to `http://localhost:80`
+6. Open your browser and navigate to `http://localhost:80`
 
 ## Contributing 🤝
 
