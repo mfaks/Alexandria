@@ -44,7 +44,7 @@ func AuthCallback(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		http.Redirect(w, r, "http://localhost:4200/my-uploads", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "http://localhost:80/my-uploads", http.StatusTemporaryRedirect)
 	}
 }
 

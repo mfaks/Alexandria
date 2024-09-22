@@ -1,5 +1,4 @@
 import io
-import json
 import os
 from typing import List, Optional
 from PyPDF2 import PdfReader
@@ -26,13 +25,11 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],
+    allow_origins=["http://localhost:80", "http://localhost"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 ATLAS_CONNECTION_STRING = os.getenv("ATLAS_CONNECTION_STRING")
 mongo_client = MongoClient(ATLAS_CONNECTION_STRING, tlsCAFile=certifi.where())
@@ -62,11 +59,11 @@ class SearchQuery(BaseModel):
 
 llm = OpenAI()
 
-@app.get("/user_info/")
+@app.get("/user_info")
 async def get_user_info(gothic_session: Optional[str] = Cookie(None)):
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
         response = await client.get(
-            f"{GO_BACKEND_URL}/user/info",
+            "http://auth-service:8080/user/info",
             cookies={"gothic_session": gothic_session}
         )
 
@@ -82,7 +79,7 @@ def extract_text_from_pdf(pdf_reader):
         pdf_text += page.extract_text()
     return pdf_text
 
-@app.post("/upload_document/")
+@app.post("/upload_document")
 async def upload_document(
     file: UploadFile = File(...),
     document: str = Form(...),
@@ -124,7 +121,7 @@ async def upload_document(
 
     return {"message": "Document uploaded and indexed successfully"}
 
-@app.get("/user_documents/")
+@app.get("/user_documents")
 async def get_user_documents(request: Request, user_info: dict = Depends(get_user_info)):
     user_documents = list(collection.find({"user_email": user_info["email"]}))
     base_url = str(request.base_url)
@@ -151,7 +148,7 @@ async def get_thumbnail(document_id: str):
     else:
         raise HTTPException(status_code=404, detail="Thumbnail not found")
 
-@app.get("/public_documents/")
+@app.get("/public_documents")
 async def get_public_documents(request: Request):
     public_documents = list(collection.find({"isPublic": True}))
     base_url = str(request.base_url)
@@ -238,7 +235,7 @@ async def download_document(document_id: str, user_info: dict = Depends(get_user
         }
     )
 
-@app.post("/search_documents/")
+@app.post("/search_documents")
 async def search_documents(search_query: SearchQuery, request: Request, user_info: dict = Depends(get_user_info)):
     query_embedding = embeddings.embed_query(search_query.query)
 
