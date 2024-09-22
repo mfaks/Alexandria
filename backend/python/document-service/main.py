@@ -1,6 +1,5 @@
 import io
 import json
-import logging
 import os
 from typing import List, Optional
 from PyPDF2 import PdfReader
@@ -11,17 +10,15 @@ from fastapi import Cookie, Depends, FastAPI, File, Form, HTTPException, Respons
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import httpx
-from jsonschema import ValidationError
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel
 from pymongo import MongoClient
 from bson import ObjectId
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 import uvicorn
 from datetime import datetime
 from bson.binary import Binary
 import fitz
-from openai import OpenAI, RateLimitError
+from openai import OpenAI
 import numpy as np
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_mongodb import MongoDBAtlasVectorSearch
@@ -88,61 +85,47 @@ def extract_text_from_pdf(pdf_reader):
         pdf_text += page.extract_text()
     return pdf_text
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 @app.post("/upload_document/")
 async def upload_document(
     file: UploadFile = File(...),
     document: str = Form(...),
     user_info: dict = Depends(get_user_info)
 ):
-    try:
-        document_data = json_util.loads(document)
-        validated_document = Document(**document_data)
+    document_data = json_util.loads(document)
+    validated_document = Document(**document_data)
 
-        file_content = await file.read()
+    file_content = await file.read()
 
-        pdf_document = fitz.open(stream=file_content, filetype="pdf")
-        first_page = pdf_document.load_page(0)
-        pix = first_page.get_pixmap(matrix=fitz.Matrix(2, 2))
-        thumbnail = pix.tobytes("png")
+    pdf_document = fitz.open(stream=file_content, filetype="pdf")
+    first_page = pdf_document.load_page(0)
+    pix = first_page.get_pixmap(matrix=fitz.Matrix(2, 2))
+    thumbnail = pix.tobytes("png")
 
-        pdf_reader = PdfReader(io.BytesIO(file_content))
-        pdf_text = extract_text_from_pdf(pdf_reader)
+    pdf_reader = PdfReader(io.BytesIO(file_content))
+    pdf_text = extract_text_from_pdf(pdf_reader)
 
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000, chunk_overlap=150)
-        chunks = text_splitter.split_text(pdf_text)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000, chunk_overlap=150)
+    chunks = text_splitter.split_text(pdf_text)
 
-        logger.info("Starting embedding generation for entire document")
-        try:
-            document_embedding = embeddings.embed_query(pdf_text)
-            logger.info("Embedding generated for entire document")
-        except Exception as e:
-            logger.error(f"Error generating embedding: {str(e)}")
-            raise
+    document_embedding = embeddings.embed_query(pdf_text)
 
-        document_to_insert = {
-            **validated_document.dict(),
-            "fileName": file.filename,
-            "user_email": user_info["email"],
-            "lastUpdated": datetime.now(),
-            "fileContent": Binary(file_content),
-            "fileSize": len(file_content),
-            "thumbnailUrl": Binary(thumbnail),
-            "text_content": pdf_text,
-            "document_embedding": document_embedding,
-            "chunks": chunks
-        }
+    document_to_insert = {
+        **validated_document.dict(),
+        "fileName": file.filename,
+        "user_email": user_info["email"],
+        "lastUpdated": datetime.now(),
+        "fileContent": Binary(file_content),
+        "fileSize": len(file_content),
+        "thumbnailUrl": Binary(thumbnail),
+        "text_content": pdf_text,
+        "document_embedding": document_embedding,
+        "chunks": chunks
+    }
 
-        collection.insert_one(document_to_insert)
+    collection.insert_one(document_to_insert)
 
-        return {"message": "Document uploaded and indexed successfully"}
-    except RateLimitError as e:
-        return {"error": f"Rate limit exceeded: {str(e)}"}
-    except Exception as e:
-        return {"error": f"Internal server error: {str(e)}"}
+    return {"message": "Document uploaded and indexed successfully"}
 
 @app.get("/user_documents/")
 async def get_user_documents(request: Request, user_info: dict = Depends(get_user_info)):
@@ -196,47 +179,44 @@ async def update_document(
     file: Optional[UploadFile] = File(None),
     user_info: dict = Depends(get_user_info)
 ):
-    try:
-        document_data = json_util.loads(document)
-        validated_document = Document(**document_data)
+    document_data = json_util.loads(document)
+    validated_document = Document(**document_data)
 
-        update_data = {
-            **validated_document.dict(),
-            "lastUpdated": datetime.now()
-        }
+    update_data = {
+        **validated_document.dict(),
+        "lastUpdated": datetime.now()
+    }
 
-        if file:
-            file_content = await file.read()
-            update_data["fileContent"] = Binary(file_content)
-            update_data["fileSize"] = len(file_content)
-            update_data["fileName"] = file.filename
+    if file:
+        file_content = await file.read()
+        update_data["fileContent"] = Binary(file_content)
+        update_data["fileSize"] = len(file_content)
+        update_data["fileName"] = file.filename
 
-            pdf_document = fitz.open(stream=file_content, filetype="pdf")
-            first_page = pdf_document.load_page(0)
-            pix = first_page.get_pixmap(matrix=fitz.Matrix(2, 2))
-            thumbnail = pix.tobytes("png")
-            update_data["thumbnailUrl"] = Binary(thumbnail)
+        pdf_document = fitz.open(stream=file_content, filetype="pdf")
+        first_page = pdf_document.load_page(0)
+        pix = first_page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        thumbnail = pix.tobytes("png")
+        update_data["thumbnailUrl"] = Binary(thumbnail)
 
-            pdf_reader = PdfReader(io.BytesIO(file_content))
-            pdf_text = extract_text_from_pdf(pdf_reader)
-            update_data["text_content"] = pdf_text
+        pdf_reader = PdfReader(io.BytesIO(file_content))
+        pdf_text = extract_text_from_pdf(pdf_reader)
+        update_data["text_content"] = pdf_text
 
-            document_embedding = embeddings.embed_query(pdf_text)
-            update_data["document_embedding"] = document_embedding
+        document_embedding = embeddings.embed_query(pdf_text)
+        update_data["document_embedding"] = document_embedding
 
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000, chunk_overlap=150)
-            chunks = text_splitter.split_text(pdf_text)
-            update_data["chunks"] = chunks
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000, chunk_overlap=150)
+        chunks = text_splitter.split_text(pdf_text)
+        update_data["chunks"] = chunks
 
-        collection.update_one(
-            {"_id": ObjectId(document_id), "user_email": user_info["email"]},
-            {"$set": update_data}
-        )
+    collection.update_one(
+        {"_id": ObjectId(document_id), "user_email": user_info["email"]},
+        {"$set": update_data}
+    )
 
-        return {"message": "Document updated successfully"}
-    except Exception as e:
-        return {"error": f"Internal server error: {str(e)}"}
+    return {"message": "Document updated successfully"}
 
 @app.delete("/delete_document/{document_id}")
 async def delete_document(document_id: str, user_info: dict = Depends(get_user_info)):
@@ -263,56 +243,52 @@ async def download_document(document_id: str, user_info: dict = Depends(get_user
 
 @app.post("/search_documents/")
 async def search_documents(search_query: SearchQuery, request: Request, user_info: dict = Depends(get_user_info)):
-    try:
-        query_embedding = embeddings.embed_query(search_query.query)
+    query_embedding = embeddings.embed_query(search_query.query)
 
-        vector_search_query = [
-            {
-                "$vectorSearch": {
-                    "index": "alexandria_vector_index",
-                    "path": "document_embedding",
-                    "queryVector": query_embedding,
-                    "numCandidates": 100,
-                    "limit": search_query.top_k
-                }},
-            {
-                "$project": {
-                    "score": {"$meta": "vectorSearchScore"},
-                    "title": 1,
-                    "authors": 1,
-                    "description": 1,
-                    "categories": 1,
-                    "fileName": 1,
-                    "thumbnailUrl": 1,
-                    "lastUpdated": 1,
-                    "isPublic": 1,
-                    "user_email": 1,
-                    "_id": 1
-                }
+    vector_search_query = [
+        {
+            "$vectorSearch": {
+                "index": "alexandria_vector_index",
+                "path": "document_embedding",
+                "queryVector": query_embedding,
+                "numCandidates": 100,
+                "limit": search_query.top_k
+            }},
+        {
+            "$project": {
+                "score": {"$meta": "vectorSearchScore"},
+                "title": 1,
+                "authors": 1,
+                "description": 1,
+                "categories": 1,
+                "fileName": 1,
+                "thumbnailUrl": 1,
+                "lastUpdated": 1,
+                "isPublic": 1,
+                "user_email": 1,
+                "_id": 1
             }
-        ]
+        }
+    ]
 
-        results = list(collection.aggregate(vector_search_query))
+    results = list(collection.aggregate(vector_search_query))
 
-        base_url = str(request.base_url)
-        return [
-            {
-                "_id": str(doc["_id"]),
-                "title": doc["title"],
-                "authors": doc["authors"],
-                "description": doc.get("description"),
-                "categories": doc["categories"],
-                "fileName": doc["fileName"],
-                "thumbnailUrl": f"{base_url}thumbnail/{str(doc['_id'])}",
-                "lastUpdated": doc["lastUpdated"],
-                "isPublic": doc["isPublic"],
-                "user_email": doc["user_email"],
-                "similarity_score": doc["score"]
-            } for doc in results
-        ]
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Internal server error: {str(e)}")
+    base_url = str(request.base_url)
+    return [
+        {
+            "_id": str(doc["_id"]),
+            "title": doc["title"],
+            "authors": doc["authors"],
+            "description": doc.get("description"),
+            "categories": doc["categories"],
+            "fileName": doc["fileName"],
+            "thumbnailUrl": f"{base_url}thumbnail/{str(doc['_id'])}",
+            "lastUpdated": doc["lastUpdated"],
+            "isPublic": doc["isPublic"],
+            "user_email": doc["user_email"],
+            "similarity_score": doc["score"]
+        } for doc in results
+    ]
         
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

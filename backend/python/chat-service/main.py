@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel
 from typing import List
 import os
@@ -11,6 +10,7 @@ from pymongo import MongoClient
 import certifi
 import json
 from fastapi.responses import StreamingResponse
+from bson import ObjectId
 
 app = FastAPI()
 
@@ -42,40 +42,55 @@ class ChatRequest(BaseModel):
     messages: List[ChatMessage]
 
 @app.post("/chat_with_pdf/{pdf_id}")
-async def chat_with_pdf(chat_request: ChatRequest):
+async def chat_with_pdf(pdf_id: str, chat_request: ChatRequest):
+    object_id = ObjectId(pdf_id)
+    document = collection.find_one({"_id": object_id})
+    if not document:
+        raise HTTPException(status_code=404, detail="PDF not found")
+
     user_message = next((msg.content for msg in reversed(chat_request.messages) if msg.role == "user"), None)
+    if not user_message:
+        raise HTTPException(status_code=400, detail="No user message provided")
 
     user_embedding = embeddings.embed_query(user_message)
 
-    search_query = [
+    pipeline = [
         {
             "$vectorSearch": {
                 "index": "alexandria_vector_index",
                 "path": "document_embedding",
                 "queryVector": user_embedding,
-                "numCandidates": 100,
+                "numCandidates": 1000,
                 "limit": 5
             }
         },
         {
+            "$match": {
+                "_id": object_id
+            }
+        },
+        {
             "$project": {
-                "score": {"$meta": "vectorSearchScore"},
-                "text_content": 1,
                 "title": 1,
                 "authors": 1,
-                "description": 1
+                "description": 1,
+                "chunks": 1,
+                "score": {"$meta": "vectorSearchScore"}
             }
         }
     ]
+    
+    search_results = list(collection.aggregate(pipeline))
 
-    search_results = list(collection.aggregate(search_query))
+    if not search_results:
+        selected_chunks = document.get('chunks', [])[:5]
+    else:
+        document = search_results[0]
+        selected_chunks = document.get('chunks', [])[:5]
+    
+    context = "\n\n".join(selected_chunks)
 
-    most_relevant_doc = search_results[0]
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
-    chunks = text_splitter.split_text(most_relevant_doc['text_content'])
-    context = "\n".join(chunks[:5])
-
-    pdf_info = f"Title: {most_relevant_doc['title']}\nAuthors: {', '.join(most_relevant_doc['authors'])}\nDescription: {most_relevant_doc['description']}"
+    pdf_info = f"Title: {document['title']}\nAuthors: {', '.join(document['authors'])}\nDescription: {document.get('description', 'No description available')}"
 
     async def event_generator():
         yield f"data: {json.dumps({'type': 'context', 'content': context})}\n\n"
