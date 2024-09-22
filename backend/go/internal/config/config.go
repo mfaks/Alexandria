@@ -30,13 +30,7 @@ type ProviderConfig struct {
 
 func Load() (*Config, error) {
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
 	return &Config{
-		Port:          port,
 		SessionSecret: os.Getenv("SESSION_SECRET"),
 		Database: DatabaseConfig{
 			User:     os.Getenv("MYSQL_USER"),
@@ -48,12 +42,12 @@ func Load() (*Config, error) {
 		GithubConfig: ProviderConfig{
 			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
-			CallbackURL:  fmt.Sprintf("http://localhost:%s/auth/github/callback", port),
+			CallbackURL:  fmt.Sprintf("http://localhost:8080/auth/github/callback"),
 		},
 		GoogleConfig: ProviderConfig{
 			ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-			CallbackURL:  fmt.Sprintf("http://localhost:%s/auth/google/callback", port),
+			CallbackURL:  fmt.Sprintf("http://localhost:8080/auth/google/callback"),
 		},
 		AllowedOrigins: []string{"http://localhost:80", "http://localhost"},
 	}, nil
