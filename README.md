@@ -9,7 +9,7 @@ Alexandria is an AI-powered research companion designed to revolutionize how you
 
 ## Features ✨
 
-- **Intelligent Document Interaction**: Upload your papers and engage in conversations with them using our advanced AI system.
+- **Intelligent Document Interaction**:  Upload your papers and engage in conversations with them using our advanced AI system powered by Retrieval Augmented Generation (RAG).
 - **Vast Research Library**: Explore a comprehensive collection of research papers and academic resources covering a wide range of topics.
 - **Real-Time AI Support**: Get instant answers to your questions to enhance your understanding of complex subjects.
 - **Semantic Search**: Utilize MongoDB Atlas vector search for advanced semantic search capabilities, allowing for more accurate and context-aware document retrieval.
