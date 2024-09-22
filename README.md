@@ -1,6 +1,7 @@
 <div align="center">
-  <h1 align="center">Alexandria: AI-Powered Research Assistant</h1>
-  <img width="1499" alt="alexandria_home" src="https://github.com/user-attachments/assets/e3e622dc-ece6-47eb-9fcd-cb397294b498">
+  <h1 align="center" style="margin-bottom: 0;">Alexandria</h1>
+  <h2 align="center" style="margin-top: 0;">An AI-Powered Research Assistant</h2>
+  <img width="1499" alt="alexandria_home" src="https://github.com/user-attachments/assets/e3e622dc-ece6-47eb-9fcd-cb397294b498" style="margin: 0;">
 </div>
 
 ## Introduction 🚀
