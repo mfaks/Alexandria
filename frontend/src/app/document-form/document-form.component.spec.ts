@@ -1,17 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NavSearchComponent } from './nav-search.component';
 
-describe('NavSearchComponent', () => {
-  let component: NavSearchComponent;
-  let fixture: ComponentFixture<NavSearchComponent>;
+import { DocumentFormComponent } from './document-form.component';
+
+describe('DocumentFormComponent', () => {
+  let component: DocumentFormComponent;
+  let fixture: ComponentFixture<DocumentFormComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [NavSearchComponent]
+      imports: [DocumentFormComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(NavSearchComponent);
+    fixture = TestBed.createComponent(DocumentFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

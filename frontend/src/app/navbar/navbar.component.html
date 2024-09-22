@@ -1,7 +1,7 @@
 <div class="navbar bg-base-100 flex items-center justify-between w-full px-4 py-4">
     <div class="flex-none flex items-center">
-        <img src="library.svg" alt="Library Icon" class="w-6 h-6">
-        <a routerLink="/" class="ml-2 text-xl hidden sm:inline">Alexandria</a>
+        <img src="library.svg" alt="Library Icon" class="w-8 h-8">
+        <a routerLink="/" class="ml-2 text-2xl font-semibold hidden sm:inline">Alexandria</a>
     </div>
     <div class="flex-grow flex justify-center mx-4">
         <div class="w-full max-w-3xl">
@@ -10,8 +10,8 @@
     </div>
     <div class="flex-none flex items-center gap-2 sm:gap-4">
         <nav class="hidden sm:flex space-x-2 md:space-x-4" *ngIf="userInfo">
-            <a routerLink="/library" class="text-xs sm:text-sm whitespace-nowrap">The Library</a>
-            <a routerLink="/my-uploads" class="text-xs sm:text-sm whitespace-nowrap">My Uploads</a>
+            <a routerLink="/library" class="text-sm sm:text-base font-medium whitespace-nowrap">The Library</a>
+            <a routerLink="/my-uploads" class="text-sm sm:text-base font-medium whitespace-nowrap">My Uploads</a>
         </nav>
         <div class="dropdown dropdown-end">
             <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">

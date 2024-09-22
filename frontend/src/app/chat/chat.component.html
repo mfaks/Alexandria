@@ -17,7 +17,7 @@
         </div>
     </div>
     <div class="w-1/2 p-4 flex flex-col">
-        <div class="flex-grow overflow-y-auto mb-4">
+        <div class="flex-grow overflow-y-auto mb-4 scrollbar-hide">
             @for (message of chatMessages; track message) {
             <div class="mb-4" [class.text-right]="message.role === 'user'">
                 <span class="inline-block p-2 rounded" 

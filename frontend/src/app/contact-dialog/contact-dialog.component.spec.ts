@@ -1,17 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NavSearchComponent } from './nav-search.component';
 
-describe('NavSearchComponent', () => {
-  let component: NavSearchComponent;
-  let fixture: ComponentFixture<NavSearchComponent>;
+import { ContactDialogComponent } from './contact-dialog.component';
+
+describe('ContactDialogComponent', () => {
+  let component: ContactDialogComponent;
+  let fixture: ComponentFixture<ContactDialogComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [NavSearchComponent]
+      imports: [ContactDialogComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(NavSearchComponent);
+    fixture = TestBed.createComponent(ContactDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

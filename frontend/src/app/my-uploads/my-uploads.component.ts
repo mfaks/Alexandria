@@ -1,58 +1,33 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FilterSidebarComponent } from '../filter-sidebar/filter-sidebar.component';
 import { Router } from '@angular/router';
-
-interface Document {
-  _id?: string;
-  title: string;
-  authors: string[];
-  description?: string;
-  categories: string[];
-  fileName: string;
-  thumbnailUrl: string;
-  lastUpdated: string;
-  isPublic: boolean;
-  fileUrl?: string;
-}
+import { Document } from '../interfaces/shared/document.interface';
+import { DocumentPopupComponent } from "../document-popup/document-popup.component";
+import { DocumentFormComponent } from '../document-form/document-form.component';
 
 @Component({
   selector: 'app-my-uploads',
   standalone: true,
-  imports: [CommonModule, FormsModule, FilterSidebarComponent],
-  templateUrl: './my-uploads.component.html'
+  imports: [CommonModule, FilterSidebarComponent, DocumentPopupComponent, DocumentFormComponent],
+  templateUrl: './my-uploads.component.html',
+  styleUrls: ['./my-uploads.component.css']
 })
 export class MyUploadsComponent implements OnInit {
   documents: Document[] = [];
   filteredDocuments: Document[] = [];
-  newDocument: Document = this.getEmptyDocument();
   showUploadForm = false;
-  newCategory = '';
-  newAuthor = '';
   isEditing = false;
-  selectedFile: File | null = null;
+  editingDocument: Document | null = null;
 
-  preloadedFileName: string | null = null;
+  showPopup = false;
+  selectedDocument: Document | null = null;
 
   constructor(private http: HttpClient, private router: Router) { }
 
   ngOnInit() {
     this.loadDocuments();
-  }
-
-  getEmptyDocument(): Document {
-    return {
-      title: '',
-      authors: [],
-      description: '',
-      categories: [],
-      fileName: '',
-      thumbnailUrl: '',
-      lastUpdated: '',
-      isPublic: false
-    };
   }
 
   loadDocuments() {
@@ -70,14 +45,14 @@ export class MyUploadsComponent implements OnInit {
 
   applyFilters(filters: any) {
     this.filteredDocuments = this.documents.filter(doc => {
-      const titleMatch = !filters.titleSearch || 
-      doc.title.toLowerCase().includes(filters.titleSearch.toLowerCase());
+      const titleMatch = !filters.documentSearch || 
+        doc.title.toLowerCase().includes(filters.documentSearch.toLowerCase());
 
-      const authorMatch = Object.keys(filters.authors).length === 0 ||
-        doc.authors.some(author => filters.authors[author]);
+      const authorMatch = !filters.authors || filters.authors.length === 0 ||
+        doc.authors.some(author => filters.authors.includes(author));
 
-      const categoryMatch = Object.keys(filters.categories).length === 0 ||
-        doc.categories.some(category => filters.categories[category]);
+      const categoryMatch = !filters.categories || filters.categories.length === 0 ||
+        doc.categories.some(category => filters.categories.includes(category));
 
       const visibilityMatch = filters.visibility === 'all' ||
         (filters.visibility === 'public' && doc.isPublic) ||
@@ -87,40 +62,22 @@ export class MyUploadsComponent implements OnInit {
     });
   }
 
-  onFileSelected(event: any): void {
-    const file: File = event.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      this.selectedFile = file;
-      this.newDocument.fileName = file.name;
-      this.preloadedFileName = null
-    } else {
-      alert('Please select a PDF file.');
-    }
-  }
+  submitDocument(formData: { document: Document, file: File | null }): void {
+    const { document, file } = formData;
+    const formDataToSend = new FormData();
 
-  submitDocument(): void {
-    const formData = new FormData();
+    formDataToSend.append('document', JSON.stringify(document));
 
-    const documentData = {
-      title: this.newDocument.title,
-      authors: this.newDocument.authors,
-      description: this.newDocument.description,
-      categories: this.newDocument.categories,
-      isPublic: this.newDocument.isPublic
-    };
-
-    formData.append('document', JSON.stringify(documentData));
-
-    if (this.selectedFile) {
-      formData.append('file', this.selectedFile);
-    } else if (this.isEditing && this.preloadedFileName) {
-      formData.append('keepExistingFile', 'true');
+    if (file) {
+      formDataToSend.append('file', file);
+    } else if (this.isEditing) {
+      formDataToSend.append('keepExistingFile', 'true');
     }
 
     const headers = new HttpHeaders();
 
-    if (this.isEditing && this.newDocument._id) {
-      this.http.put(`http://localhost:8000/update_document/${this.newDocument._id}`, formData, { headers, withCredentials: true })
+    if (this.isEditing && document._id) {
+      this.http.put(`http://localhost:8000/update_document/${document._id}`, formDataToSend, { headers, withCredentials: true })
         .subscribe(
           () => {
             this.loadDocuments();
@@ -131,7 +88,7 @@ export class MyUploadsComponent implements OnInit {
           }
         );
     } else {
-      this.http.post('http://localhost:8000/upload_document', formData, { headers, withCredentials: true })
+      this.http.post('http://localhost:8000/upload_document', formDataToSend, { headers, withCredentials: true })
         .subscribe(
           () => {
             this.loadDocuments();
@@ -143,14 +100,11 @@ export class MyUploadsComponent implements OnInit {
         );
     }
   }
+
   resetForm(): void {
-    this.newDocument = this.getEmptyDocument();
-    this.selectedFile = null;
-    this.preloadedFileName = null;
     this.showUploadForm = false;
     this.isEditing = false;
-    this.newCategory = '';
-    this.newAuthor = '';
+    this.editingDocument = null;
   }
 
   downloadDocument(document: Document): void {
@@ -200,6 +154,8 @@ export class MyUploadsComponent implements OnInit {
 
   openFileUpload(): void {
     this.showUploadForm = true;
+    this.isEditing = false;
+    this.editingDocument = null;
   }
 
   chatAboutDocument(document: Document): void {
@@ -209,70 +165,21 @@ export class MyUploadsComponent implements OnInit {
   editDocument(document: Document): void {
     this.isEditing = true;
     this.showUploadForm = true;
-    this.newDocument = { ...document };
-    this.preloadedFileName = document.fileName;
+    this.editingDocument = { ...document };
     this.scrollToTop();
-  }
-
-  addCategory(): void {
-    if (this.newCategory.trim()) {
-      const categories = this.newCategory.split(/[,\s]+/).map(cat => cat.trim()).filter(cat => cat);
-      categories.forEach(category => {
-        if (!this.newDocument.categories.includes(category)) {
-          this.newDocument.categories.push(category);
-        }
-      });
-      this.newCategory = '';
-    }
-  }
-
-  onCategoryInput(event: KeyboardEvent): void {
-    if (event.key === ',' || event.key === ' ' || event.key === 'Enter') {
-      event.preventDefault();
-      this.addCategory();
-    }
-  }
-
-
-  removeCategory(category: string): void {
-    this.newDocument.categories = this.newDocument.categories.filter(c => c !== category);
-  }
-
-  addAuthor(): void {
-    if (this.newAuthor.trim()) {
-      const authors = this.newAuthor.split(/[,\s]+/).map(author => author.trim()).filter(author => author);
-      authors.forEach(author => {
-        if (!this.newDocument.authors.includes(author)) {
-          this.newDocument.authors.push(author);
-        }
-      });
-      this.newAuthor = '';
-    }
-  }
-
-  onAuthorInput(event: KeyboardEvent): void {
-    if (event.key === ',' || event.key === ' ' || event.key === 'Enter') {
-      event.preventDefault();
-      this.addAuthor();
-    }
-  }
-
-  removeAuthor(author: string): void {
-    this.newDocument.authors = this.newDocument.authors.filter(a => a !== author);
-  }
-
-  clearImage(): void {
-    this.newDocument.thumbnailUrl = '';
-    this.newDocument.fileName = '';
-    this.newDocument.fileUrl = '';
-    this.selectedFile = null;
-    const fileInput = document.getElementById('file') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
   }
 
   scrollToTop(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  showDescription(document: Document): void {
+    this.selectedDocument = document;
+    this.showPopup = true;
+  }
+
+  closePopup(): void {
+    this.showPopup = false;
+    this.selectedDocument = null;
   }
 }

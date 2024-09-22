@@ -3,7 +3,7 @@
         <app-filter-sidebar [documents]="documents" [currentUserEmail]="currentUserEmail"
             [isLibraryRoute]="isLibraryRoute" (filtersChanged)="applyFilters($event)"></app-filter-sidebar>
     </div>
-    <div class="flex-1 mr-2 ml-2 overflow-y-auto">
+    <div class="flex-1 mr-2 ml-2 overflow-y-auto scrollbar-hide">
         <div class="w-full">
             <div class="flex items-center justify-between">
                 <div class="flex-grow mt-6">
@@ -15,13 +15,15 @@
             <div class="border-t border-gray-200 mb-4"></div>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <div *ngFor="let document of filteredDocuments"
-                    class="bg-white p-4 rounded-lg shadow-md flex flex-col max-w-[240px]">
+                    class="bg-white p-4 rounded-lg shadow-md flex flex-col max-w-[240px]"
+                    (dblclick)="showDescription(document)">
                     <div class="flex justify-center mb-4">
                         <img [src]="document.thumbnailUrl" [alt]="(document.title || document.fileName)" width="120"
                             height="150" class="rounded-md object-cover" />
                     </div>
                     <div class="mb-4 flex-grow">
-                        <h3 class="text-md font-medium truncate">{{ document.title || document.fileName }}</h3>
+                        <p class="text-md font-medium truncate text-center">{{ document.title || document.fileName }}
+                        </p>
                         <p class="text-gray-600 text-xs truncate">Author(s): {{ document.authors.join(', ') }}</p>
                         <p *ngIf="document.description" class="text-gray-600 text-xs truncate">Description: {{
                             document.description }}</p>
@@ -45,3 +47,8 @@
         </div>
     </div>
 </div>
+<app-document-popup 
+    [showPopup]="showPopup" 
+    [document]="selectedDocument" 
+    (close)="closePopup()">
+</app-document-popup>

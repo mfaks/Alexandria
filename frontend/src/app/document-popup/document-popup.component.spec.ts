@@ -1,17 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NavSearchComponent } from './nav-search.component';
 
-describe('NavSearchComponent', () => {
-  let component: NavSearchComponent;
-  let fixture: ComponentFixture<NavSearchComponent>;
+import { DocumentPopupComponent } from './document-popup.component';
+
+describe('DocumentPopupComponent', () => {
+  let component: DocumentPopupComponent;
+  let fixture: ComponentFixture<DocumentPopupComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [NavSearchComponent]
+      imports: [DocumentPopupComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(NavSearchComponent);
+    fixture = TestBed.createComponent(DocumentPopupComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
