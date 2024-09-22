@@ -14,6 +14,11 @@ Alexandria is an AI-powered research companion designed to revolutionize how you
 - **Real-Time AI Support**: Get instant answers to your questions to enhance your understanding of complex subjects.
 - **Data Privacy Promise**: Your data is never used for training or shared with third parties, ensuring the highest standards of privacy and integrity.
 
+<div style="display: flex; justify-content: space-between;">
+  <img width="500" alt="library" src="https://github.com/user-attachments/assets/5d70cbee-3db2-4082-aefb-1b83bc9a12af">
+  <img width="500" alt="chat" src="https://github.com/user-attachments/assets/5a29634d-3aa0-4705-b753-7ebeb2051a72" style="margin-right: 10px;">
+</div>
+
 ## Tech Stack 🛠️
 
 ### Frontend
