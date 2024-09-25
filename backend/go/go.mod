@@ -10,7 +10,6 @@ require (
 require (
 	cloud.google.com/go/compute v1.23.3 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	golang.org/x/oauth2 v0.17.0 // indirect
@@ -20,7 +19,6 @@ require (
 
 require (
 	github.com/go-chi/chi/v5 v5.1.0
-	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/markbates/goth v1.80.0
 )

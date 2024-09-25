@@ -5,13 +5,12 @@ import (
 	"alexandria/internal/models"
 	"database/sql"
 	"fmt"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 func InitDB(cfg config.DatabaseConfig) (*sql.DB, error) {
-	dataSourceName := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name)
-	db, err := sql.Open("mysql", dataSourceName)
+	azureDB := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?tls=true", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name)
+
+	db, err := sql.Open("mysql", azureDB)
 	if err != nil {
 		return nil, fmt.Errorf("error opening database: %w", err)
 	}
@@ -40,7 +39,6 @@ func InitDB(cfg config.DatabaseConfig) (*sql.DB, error) {
 
 	return db, nil
 }
-
 func StoreUserInfo(db *sql.DB, user *models.User) error {
 	_, err := db.Exec(`
 		INSERT INTO users (name, email, nickname, avatar_url, user_id, provider)

@@ -29,15 +29,14 @@ type ProviderConfig struct {
 }
 
 func Load() (*Config, error) {
-
 	return &Config{
 		SessionSecret: os.Getenv("SESSION_SECRET"),
 		Database: DatabaseConfig{
-			User:     os.Getenv("MYSQL_USER"),
-			Password: os.Getenv("MYSQL_PASSWORD"),
-			Host:     os.Getenv("MYSQL_HOST"),
-			Port:     os.Getenv("MYSQL_PORT"),
-			Name:     os.Getenv("MYSQL_DATABASE"),
+			User:     os.Getenv("AZURE_MYSQL_USER"),
+			Password: os.Getenv("AZURE_MYSQL_PASSWORD"),
+			Host:     os.Getenv("AZURE_MYSQL_HOST"),
+			Port:     os.Getenv("AZURE_MYSQL_PORT"),
+			Name:     os.Getenv("AZURE_MYSQL_DATABASE"),
 		},
 		GithubConfig: ProviderConfig{
 			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
