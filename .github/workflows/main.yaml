@@ -1,0 +1,148 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  ACR_NAME: alexandriacontainerregistry
+  AKS_RESOURCE_GROUP: Alexandria
+  AKS_CLUSTER_NAME: Alexandria-K8S
+  FRONTEND_IMAGE: frontend
+  AUTH_SERVICE_IMAGE: auth-service
+  CHAT_SERVICE_IMAGE: chat-service
+  DOCUMENT_SERVICE_IMAGE: document-service
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'
+
+      - name: Install Angular Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run Angular Build
+        run: |
+          cd frontend
+          npm run build -- --configuration production
+
+      - name: Run Angular Tests
+        run: |
+          cd frontend
+          npm test -- --watch=false --browsers=ChromeHeadless
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.23'
+
+      - name: Install Go Dependencies
+        run: |
+          cd backend/go
+          go mod download
+
+      - name: Build Go Application
+        run: |
+          cd backend/go/cmd/server
+          go build -o main
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.12.2'
+
+      - name: Install Python Dependencies
+        run: |
+          cd backend/python
+          pip install -r chat-service/requirements.txt
+          pip install -r document-service/requirements.txt
+
+  build-and-push-images:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.ACR_NAME }}.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+
+      - name: Build and push auth service image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./backend/go
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/${{ env.AUTH_SERVICE_IMAGE }}:${{ github.sha }}
+
+      - name: Build and push chat service image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./backend/python/chat-service
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/${{ env.CHAT_SERVICE_IMAGE }}:${{ github.sha }}
+
+      - name: Build and push document service image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./backend/python/document-service
+          push: true
+          tags: ${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCUMENT_SERVICE_IMAGE }}:${{ github.sha }}
+
+  deploy-to-aks:
+    needs: build-and-push-images
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          resource-group: ${{ env.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_CLUSTER_NAME }}
+
+      - name: Deploy to AKS
+        run: |
+          sed -i 's|{{FRONTEND_IMAGE}}|${{ env.ACR_NAME }}.azurecr.io/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}|g' k8s/frontend-deployment.yaml
+          sed -i 's|{{AUTH_SERVICE_IMAGE}}|${{ env.ACR_NAME }}.azurecr.io/${{ env.AUTH_SERVICE_IMAGE }}:${{ github.sha }}|g' k8s/auth-service-deployment.yaml
+          sed -i 's|{{CHAT_SERVICE_IMAGE}}|${{ env.ACR_NAME }}.azurecr.io/${{ env.CHAT_SERVICE_IMAGE }}:${{ github.sha }}|g' k8s/chat-service-deployment.yaml
+          sed -i 's|{{DOCUMENT_SERVICE_IMAGE}}|${{ env.ACR_NAME }}.azurecr.io/${{ env.DOCUMENT_SERVICE_IMAGE }}:${{ github.sha }}|g' k8s/document-service-deployment.yaml
+          
+          kubectl apply -f k8s/
