@@ -25,7 +25,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:80", "http://localhost"],
+    allow_origins=["https://alexandriadev.us"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,11 +59,11 @@ class SearchQuery(BaseModel):
 
 llm = OpenAI()
 
-@app.get("/user_info")
+@app.get("/user/info")
 async def get_user_info(gothic_session: Optional[str] = Cookie(None)):
     async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
         response = await client.get(
-            "http://auth-service:8080/user/info",
+            "https://alexandriadev.us/user/info",
             cookies={"gothic_session": gothic_session}
         )
 
