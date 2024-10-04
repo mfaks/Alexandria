@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    env_file:
+      - ./.env
+    depends_on:
+      - auth-service
+
+  auth-service:
+    build: ./backend/go
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./.env
+    environment:
+      - MYSQL_HOST=${AZURE_MYSQL_HOST}
+      - MYSQL_PORT=${AZURE_MYSQL_PORT}
+
+  document-service:
+    build: ./backend/python/document-service
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env
+    depends_on:
+      - auth-service
+
+  chat-service:
+    build: ./backend/python/chat-service
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./.env
+    depends_on:
+      - auth-service

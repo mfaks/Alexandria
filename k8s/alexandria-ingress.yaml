@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alexandria-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - alexandriadev.us
+    secretName: alexandria-tls
+  rules:
+  - host: alexandriadev.us
+    http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-service
+            port: 
+              number: 8080
+      - path: /chat
+        pathType: Prefix
+        backend:
+          service:
+            name: chat-service
+            port: 
+              number: 8001
+      - path: /documents
+        pathType: Prefix
+        backend:
+          service:
+            name: document-service
+            port: 
+              number: 8000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend
+            port: 
+              number: 80
