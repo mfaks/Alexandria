@@ -20,7 +20,7 @@ interface Document {
   providedIn: 'root'
 })
 export class SearchService {
-  private apiUrl = 'http://localhost:8000';
+  private apiUrl = 'https://alexandriadev.us';
 
   constructor(private http: HttpClient) { }
 

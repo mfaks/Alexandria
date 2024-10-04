@@ -7,7 +7,7 @@ import { catchError, tap } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080';
+  private apiUrl = 'https://alexandriadev.us';
 
   constructor(private http: HttpClient) { }
 

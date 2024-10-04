@@ -72,7 +72,7 @@ export class LibraryComponent implements OnInit, OnDestroy {
   }
 
   getCurrentUser() {
-    this.http.get<{ email: string }>('http://localhost:8000/user_info', { withCredentials: true })
+    this.http.get<{ email: string }>('https://alexandriadev.us/user/info', { withCredentials: true })
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe(
         (response) => {
@@ -85,13 +85,13 @@ export class LibraryComponent implements OnInit, OnDestroy {
   }
 
   loadPublicDocuments() {
-    this.http.get<Document[]>('http://localhost:8000/public_documents', { withCredentials: true })
+    this.http.get<Document[]>('https://alexandriadev.us/public_documents', { withCredentials: true })
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe(
         (documents) => {
           this.documents = documents.map(doc => ({
             ...doc,
-            thumbnailUrl: `http://localhost:8000/thumbnail/${doc._id}`,
+            thumbnailUrl: `https://alexandriadev.us/thumbnail/${doc._id}`,
             uploadedBy: doc.uploadedBy || doc.user_email
           }));
           this.filteredDocuments = this.documents;
@@ -111,7 +111,7 @@ export class LibraryComponent implements OnInit, OnDestroy {
             this.documents = results.map(doc => ({
               ...doc,
               uploadedBy: doc.uploadedBy || doc.user_email || 'Unknown',
-              thumbnailUrl: `http://localhost:8000/thumbnail/${doc._id}`
+              thumbnailUrl: `https://alexandriadev.us/thumbnail/${doc._id}`
             }));
             this.documents = this.documents.filter(doc =>
               this.isLibraryRoute ?
@@ -155,7 +155,7 @@ export class LibraryComponent implements OnInit, OnDestroy {
 
   downloadDocument(document: Document): void {
     if (document._id) {
-      this.http.get(`http://localhost:8000/download_document/${document._id}`, {
+      this.http.get(`https://alexandriadev.us/download_document/${document._id}`, {
         responseType: 'blob',
         withCredentials: true
       })
