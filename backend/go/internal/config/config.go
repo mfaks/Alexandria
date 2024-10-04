@@ -41,13 +41,13 @@ func Load() (*Config, error) {
 		GithubConfig: ProviderConfig{
 			ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 			ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
-			CallbackURL:  fmt.Sprintf("http://localhost:8080/auth/github/callback"),
+			CallbackURL:  fmt.Sprintf("https://alexandriadev.us/auth/github/callback"),
 		},
 		GoogleConfig: ProviderConfig{
 			ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-			CallbackURL:  fmt.Sprintf("http://localhost:8080/auth/google/callback"),
+			CallbackURL:  fmt.Sprintf("https://alexandriadev.us/auth/google/callback"),
 		},
-		AllowedOrigins: []string{"http://localhost:80", "http://localhost"},
+		AllowedOrigins: []string{"https://alexandriadev.us"},
 	}, nil
 }

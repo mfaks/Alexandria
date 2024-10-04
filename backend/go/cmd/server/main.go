@@ -21,6 +21,6 @@ func main() {
 	defer db.Close()
 
 	srv := server.New(cfg, db)
-	log.Printf("Server is running on http://localhost:%s\n", cfg.Port)
+	log.Printf("Server is running on https://alexandriadev.us:%s\n", cfg.Port)
 	log.Fatal(srv.ListenAndServe())
 }
