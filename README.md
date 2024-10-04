@@ -45,63 +45,9 @@ Alexandria is an AI-powered research companion designed to revolutionize how you
 
 ## Getting Started 🏁
 
-### Prerequisites
-- Docker installed on your local machine
-- Git installed on your local machine
+Visit our website at [https://alexandriadev.us](https://alexandriadev.us) to start exploring the Alexandria platform.
 
-### Setup Instructions
-1. Clone the repository:
-   ```bash
-    git clone https://github.com/[YourUsername]/alexandria.git
-    cd alexandria
-   ```
-2. Install frontend dependencies:
-   ```bash
-   cd frontend
-   npm install
-   ```
-3. Set up environment variables:
-   Create a `.env` file in the root directory with the following content:
-   ```
-    MONGODB_DB_NAME=[Your MongoDB database name]
-    MONGODB_COLLECTION=[Your MongoDB collection name]
-    ATLAS_CONNECTION_STRING=[Your MongoDB Atlas connection string]
-    
-    OPENAI_API_KEY=[Your OpenAI API key]
-    
-    SESSION_SECRET=[Your session secret]
-    
-    GITHUB_CLIENT_ID=[Your GitHub OAuth client ID]
-    GITHUB_CLIENT_SECRET=[Your GitHub OAuth client secret]
-    
-    GOOGLE_CLIENT_ID=[Your Google OAuth client ID]
-    GOOGLE_CLIENT_SECRET=[Your Google OAuth client secret]
-    
-    MYSQL_USER=[Your MySQL username]
-    MYSQL_PASSWORD=[Your MySQL password]
-    MYSQL_ROOT_PASSWORD=[Your MySQL root password]
-    MYSQL_HOST=[Your MySQL host, e.g., localhost]
-    MYSQL_PORT=[Your MySQL port, default is 3306]
-    MYSQL_DATABASE=[Your MySQL database name]
-   ```
-4. Create a MongoDB Atlas vector search index with the following configuration:
-```
-{
-  "fields": [
-    {
-      "numDimensions": 1536,
-      "path": "document_embedding",
-      "similarity": "dotProduct",
-      "type": "vector"
-    }
-  ]
-}
-```  
-5. Start the Docker containers:
-   ```bash
-   docker-compose up -d
-   ```
-6. Open your browser and navigate to `http://localhost:80`
+For instructions on setting up the project locally, please refer to the 'local' branch of this repository.
 
 ## Contributing 🤝
 
@@ -117,7 +63,7 @@ We welcome contributions to Alexandria! If you'd like to contribute, please foll
 
 - **Collaborative Features**: Implement tools for researchers to collaborate and share insights within the platform.
 - **Community Forms**: Launch discussion forums where users can ask questions, share insights, and collaborate on research topics.
-- **Personalized Recommendations**: DIntroduce a recommendation system that suggests papers and resources based on user interests and previous interactions.
+- **Personalized Recommendations**: Introduce a recommendation system that suggests papers and resources based on user interests and previous interactions.
 
 ## License 📜
 
