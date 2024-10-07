@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { ContactDialogComponent } from './contact-dialog.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('ContactDialogComponent', () => {
   let component: ContactDialogComponent;
@@ -8,9 +8,8 @@ describe('ContactDialogComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ContactDialogComponent]
-    })
-    .compileComponents();
+      imports: [ContactDialogComponent, HttpClientTestingModule],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ContactDialogComponent);
     component = fixture.componentInstance;

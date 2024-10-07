@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DocumentFormComponent } from './document-form.component';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('DocumentFormComponent', () => {
   let component: DocumentFormComponent;
@@ -8,7 +9,7 @@ describe('DocumentFormComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DocumentFormComponent]
+      imports: [DocumentFormComponent, HttpClientTestingModule],
     })
     .compileComponents();
 
