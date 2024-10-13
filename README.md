@@ -48,7 +48,8 @@ Alexandria is an AI-powered research companion designed to revolutionize how you
 
 ## Getting Started 🏁
 
-Visit our website at [https://alexandriadev.us](https://alexandriadev.us) to start exploring the Alexandria platform.
+### Disclaimer:
+The Alexandria platform is temporarily down for maintenance and optimization of Azure services. We’ll be back soon—thank you for your patience!
 
 For instructions on setting up the project locally, please refer to the 'local' branch of this repository.
 
